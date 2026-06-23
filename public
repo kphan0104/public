@@ -1,0 +1,190 @@
+
+
+class MergeFieldsInArrayTest {
+
+    private final MergeFieldsInArray mergeFieldsInArray = new MergeFieldsInArray();
+
+    @Test
+    void getKey_THEN_return_mergeFieldsInArray() {
+        assertThat(mergeFieldsInArray.getKey())
+                .isEqualTo("mergeFieldsInArray");
+    }
+
+    @Test
+    void mergeFieldsInArray_WHEN_refNode_is_null_THEN_return_inputNode() {
+        var params = Map.ofEntries(
+                Map.entry("/source/host/titi", "/cmdb/asset/toto")
+        );
+
+        var inputNode = JsonNodeFactory.instance.objectNode();
+
+        var result = mergeFieldsInArray.getFunction(params)
+                .apply(inputNode, null);
+
+        assertThat(result).isEqualTo(inputNode);
+    }
+
+    @Test
+    void mergeFieldsInArray_WHEN_target_array_does_not_exist_THEN_create_array_and_add_value() {
+        var params = Map.ofEntries(
+                Map.entry("/source/host/titi", "/cmdb/asset/toto")
+        );
+
+        var inputNode = JsonNodeFactory.instance.objectNode();
+
+        var refNode = JsonNodeFactory.instance.objectNode();
+        refNode.withObject("/cmdb/asset")
+                .put("toto", "VALUE_TOTO");
+
+        var result = mergeFieldsInArray.getFunction(params)
+                .apply(inputNode, refNode);
+
+        assertThat(result.at("/source/host/titi").isArray()).isTrue();
+        assertThat(result.at("/source/host/titi")).hasSize(1);
+        assertThat(result.at("/source/host/titi/0").asText())
+                .isEqualTo("VALUE_TOTO");
+    }
+
+    @Test
+    void mergeFieldsInArray_WHEN_target_array_already_exists_THEN_append_value() {
+        var params = Map.ofEntries(
+                Map.entry("/source/host/titi", "/cmdb/asset/toto")
+        );
+
+        var inputNode = JsonNodeFactory.instance.objectNode();
+        inputNode.withObject("/source/host")
+                .withArray("titi")
+                .add("EXISTING_VALUE");
+
+        var refNode = JsonNodeFactory.instance.objectNode();
+        refNode.withObject("/cmdb/asset")
+                .put("toto", "VALUE_TOTO");
+
+        var result = mergeFieldsInArray.getFunction(params)
+                .apply(inputNode, refNode);
+
+        assertThat(result.at("/source/host/titi")).hasSize(2);
+        assertThat(result.at("/source/host/titi/0").asText())
+                .isEqualTo("EXISTING_VALUE");
+        assertThat(result.at("/source/host/titi/1").asText())
+                .isEqualTo("VALUE_TOTO");
+    }
+
+    @Test
+    void mergeFieldsInArray_WHEN_target_exists_and_is_not_array_THEN_skip() {
+        var params = Map.ofEntries(
+                Map.entry("/source/host/titi", "/cmdb/asset/toto")
+        );
+
+        var inputNode = JsonNodeFactory.instance.objectNode();
+        inputNode.withObject("/source/host")
+                .put("titi", "EXISTING_NOT_ARRAY_VALUE");
+
+        var refNode = JsonNodeFactory.instance.objectNode();
+        refNode.withObject("/cmdb/asset")
+                .put("toto", "VALUE_TOTO");
+
+        var result = mergeFieldsInArray.getFunction(params)
+                .apply(inputNode, refNode);
+
+        assertThat(result.at("/source/host/titi").isTextual()).isTrue();
+        assertThat(result.at("/source/host/titi").asText())
+                .isEqualTo("EXISTING_NOT_ARRAY_VALUE");
+    }
+
+    @Test
+    void mergeFieldsInArray_WHEN_ref_field_missing_THEN_do_not_create_target_array() {
+        var params = Map.ofEntries(
+                Map.entry("/source/host/titi", "/cmdb/asset/toto")
+        );
+
+        var inputNode = JsonNodeFactory.instance.objectNode();
+        var refNode = JsonNodeFactory.instance.objectNode();
+
+        var result = mergeFieldsInArray.getFunction(params)
+                .apply(inputNode, refNode);
+
+        assertThat(result.at("/source/host/titi").isMissingNode()).isTrue();
+    }
+
+    @Test
+    void mergeFieldsInArray_WHEN_ref_field_is_null_THEN_do_not_create_target_array() {
+        var params = Map.ofEntries(
+                Map.entry("/source/host/titi", "/cmdb/asset/toto")
+        );
+
+        var inputNode = JsonNodeFactory.instance.objectNode();
+
+        var refNode = JsonNodeFactory.instance.objectNode();
+        refNode.withObject("/cmdb/asset")
+                .putNull("toto");
+
+        var result = mergeFieldsInArray.getFunction(params)
+                .apply(inputNode, refNode);
+
+        assertThat(result.at("/source/host/titi").isMissingNode()).isTrue();
+    }
+
+    @Test
+    void mergeFieldsInArray_WHEN_ref_field_is_empty_THEN_do_not_create_target_array() {
+        var params = Map.ofEntries(
+                Map.entry("/source/host/titi", "/cmdb/asset/toto")
+        );
+
+        var inputNode = JsonNodeFactory.instance.objectNode();
+
+        var refNode = JsonNodeFactory.instance.objectNode();
+        refNode.withObject("/cmdb/asset")
+                .put("toto", "");
+
+        var result = mergeFieldsInArray.getFunction(params)
+                .apply(inputNode, refNode);
+
+        assertThat(result.at("/source/host/titi").isMissingNode()).isTrue();
+    }
+
+    @Test
+    void mergeFieldsInArray_WHEN_multiple_ref_fields_exist_THEN_merge_all_values() {
+        var params = Map.ofEntries(
+                Map.entry("/source/host/titi", "/cmdb/asset/toto"),
+                Map.entry("/source/host/tata", "/cmdb/asset/tutu")
+        );
+
+        var inputNode = JsonNodeFactory.instance.objectNode();
+
+        var refNode = JsonNodeFactory.instance.objectNode();
+        refNode.withObject("/cmdb/asset")
+                .put("toto", "VALUE_TOTO")
+                .put("tutu", "VALUE_TUTU");
+
+        var result = mergeFieldsInArray.getFunction(params)
+                .apply(inputNode, refNode);
+
+        assertThat(result.at("/source/host/titi/0").asText())
+                .isEqualTo("VALUE_TOTO");
+        assertThat(result.at("/source/host/tata/0").asText())
+                .isEqualTo("VALUE_TUTU");
+    }
+
+    @Test
+    void mergeFieldsInArray_WHEN_merge_occurs_THEN_return_copy_and_do_not_mutate_inputNode() {
+        var params = Map.ofEntries(
+                Map.entry("/source/host/titi", "/cmdb/asset/toto")
+        );
+
+        var inputNode = JsonNodeFactory.instance.objectNode();
+        var originalInputNode = inputNode.deepCopy();
+
+        var refNode = JsonNodeFactory.instance.objectNode();
+        refNode.withObject("/cmdb/asset")
+                .put("toto", "VALUE_TOTO");
+
+        var result = mergeFieldsInArray.getFunction(params)
+                .apply(inputNode, refNode);
+
+        assertThat(result).isNotSameAs(inputNode);
+        assertThat(inputNode).isEqualTo(originalInputNode);
+        assertThat(result.at("/source/host/titi/0").asText())
+                .isEqualTo("VALUE_TOTO");
+    }
+}
