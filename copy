@@ -1,11 +1,17 @@
-from pathlib import Path
 import re
-
-# Path to the text template, hardcoded in the script
-TEMPLATE_FILE = Path("template.txt")
 
 TOPIC_TOKEN = "{{TOPIC}}"
 FLOW_TOKEN = "{{FLOW}}"
+
+TEMPLATE = """
+Configuration for flow {{FLOW}}
+
+The {{FLOW}} flow uses the following topic:
+
+{{TOPIC}}
+
+End of configuration.
+""".strip()
 
 
 def ask_topic_name() -> str:
@@ -48,17 +54,8 @@ def main() -> None:
     topic_name = ask_topic_name()
     flow_name = ask_flow_name()
 
-    try:
-        template = TEMPLATE_FILE.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        print(f"Error: file '{TEMPLATE_FILE}' was not found.")
-        return
-    except OSError as error:
-        print(f"Error while reading the file: {error}")
-        return
-
     final_text = (
-        template
+        TEMPLATE
         .replace(TOPIC_TOKEN, topic_name)
         .replace(FLOW_TOKEN, flow_name)
     )
