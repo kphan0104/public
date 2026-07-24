@@ -1,4 +1,6 @@
+import argparse
 import re
+import sys
 
 TOPIC_TOKEN = "{{TOPIC}}"
 FLOW_TOKEN = "{{FLOW}}"
@@ -14,54 +16,81 @@ End of configuration.
 """.strip()
 
 
-def ask_topic_name() -> str:
-    while True:
-        topic_name = input("Topic name (no spaces): ").strip()
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Generate a configuration from a topic and a flow name."
+    )
 
-        if not topic_name:
-            print("Error: the topic name cannot be empty.")
-            continue
+    parser.add_argument(
+        "--topic",
+        required=True,
+        help="Topic name. Spaces are not allowed.",
+    )
 
-        if any(character.isspace() for character in topic_name):
-            print("Error: the topic name must not contain spaces.")
-            continue
+    parser.add_argument(
+        "--flow",
+        required=True,
+        help="Flow name. Spaces and underscores will be replaced with hyphens.",
+    )
 
-        return topic_name
-
-
-def ask_flow_name() -> str:
-    while True:
-        flow_name = input("Flow name: ").strip()
-
-        if not flow_name:
-            print("Error: the flow name cannot be empty.")
-            continue
-
-        # Replace spaces and underscores with hyphens
-        flow_name = re.sub(r"[\s_]+", "-", flow_name)
-
-        # Remove hyphens at the beginning and end
-        flow_name = flow_name.strip("-")
-
-        if not flow_name:
-            print("Error: the flow name must contain valid characters.")
-            continue
-
-        return flow_name
+    return parser.parse_args()
 
 
-def main() -> None:
-    topic_name = ask_topic_name()
-    flow_name = ask_flow_name()
+def validate_topic_name(topic_name: str) -> str:
+    topic_name = topic_name.strip()
 
-    final_text = (
+    if not topic_name:
+        raise ValueError("The topic name cannot be empty.")
+
+    if any(character.isspace() for character in topic_name):
+        raise ValueError("The topic name must not contain spaces.")
+
+    return topic_name
+
+
+def normalize_flow_name(flow_name: str) -> str:
+    flow_name = flow_name.strip()
+
+    if not flow_name:
+        raise ValueError("The flow name cannot be empty.")
+
+    # Replace spaces and underscores with hyphens
+    flow_name = re.sub(r"[\s_]+", "-", flow_name)
+
+    # Replace multiple consecutive hyphens with one hyphen
+    flow_name = re.sub(r"-+", "-", flow_name)
+
+    # Remove hyphens from the beginning and end
+    flow_name = flow_name.strip("-")
+
+    if not flow_name:
+        raise ValueError("The flow name must contain valid characters.")
+
+    return flow_name
+
+
+def generate_text(topic_name: str, flow_name: str) -> str:
+    return (
         TEMPLATE
         .replace(TOPIC_TOKEN, topic_name)
         .replace(FLOW_TOKEN, flow_name)
     )
 
-    print("\n--- Generated text ---\n")
-    print(final_text)
+
+def main() -> None:
+    try:
+        args = parse_args()
+
+        topic_name = validate_topic_name(args.topic)
+        flow_name = normalize_flow_name(args.flow)
+
+        final_text = generate_text(topic_name, flow_name)
+
+        print(final_text)
+
+    except ValueError as error:
+        print(f"Error: {error}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
