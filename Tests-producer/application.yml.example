@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: tests-producer
+  kafka:
+    bootstrap-servers:
+      - kafka-1.example.net:9093
+      - kafka-2.example.net:9093
+    client-id: tests-producer
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+      properties:
+        enable.idempotence: true
+    properties:
+      security.protocol: SSL
+      ssl.keystore.type: JKS
+      ssl.keystore.location: /opt/tests-producer/kafka-client-keystore.jks
+      ssl.keystore.password: change-me
+      ssl.key.password: change-me
+      ssl.truststore.type: JKS
+      ssl.truststore.location: /opt/tests-producer/kafka-client-truststore.jks
+      ssl.truststore.password: change-me
+      ssl.endpoint.identification.algorithm: https
+  mvc:
+    problemdetails:
+      enabled: true
+
+tests-producer:
+  publication:
+    acknowledgement-timeout: 10s
+    max-message-bytes: 1000000
+  logs:
+    directory: ${TESTS_PRODUCER_LOG_DIR:./logs}
+
+server:
+  port: 8080
+  shutdown: graceful
+  error:
+    include-stacktrace: never
+
+logging:
+  file:
+    name: ${tests-producer.logs.directory}/tests-producer.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: >-
+        ${tests-producer.logs.directory}/tests-producer.%d{yyyy-MM-dd}.%i.log.gz
+      max-file-size: 10MB
+      max-history: 3
+      total-size-cap: 1GB
+      clean-history-on-start: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
