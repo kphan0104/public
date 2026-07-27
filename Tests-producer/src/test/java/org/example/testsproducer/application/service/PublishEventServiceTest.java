@@ -4,6 +4,10 @@ import org.example.testsproducer.adapter.out.json.JacksonEventSerializerAdapter;
 import org.example.testsproducer.application.exception.MessageTooLargeException;
 import org.example.testsproducer.application.port.in.PublishEventCommand;
 import org.example.testsproducer.application.port.out.EventPublisherPort;
+import org.example.testsproducer.domain.model.DatabusEventTemplate;
+import org.example.testsproducer.domain.model.FlowFormat;
+import org.example.testsproducer.domain.model.Owner;
+import org.example.testsproducer.domain.model.Provider;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
@@ -38,6 +42,7 @@ class PublishEventServiceTest {
                         Instant.parse("2026-07-24T10:30:15.123Z"),
                         ZoneOffset.UTC
                 ),
+                configuredTemplate(),
                 1_000_000
         );
 
@@ -60,22 +65,41 @@ class PublishEventServiceTest {
         assertThat(result.partition()).isEqualTo(2);
         assertThat(result.offset()).isEqualTo(42L);
         assertThat(result.eventSize()).isEqualTo(payload.length);
-        assertThat(json.get("databus.flow.name").asText())
-                .isEqualTo("payments");
-        assertThat(json.get("databus.flow.owner.group").asText())
-                .isEqualTo("itgp");
-        assertThat(json.get("databus.flow.provider.source").asText())
-                .isEqualTo("application");
-        assertThat(json.get("databus.event.lineage.last_stage").asInt())
-                .isEqualTo(1);
-        assertThat(
-                json.get("databus.event.lineage.stage1.timestamp").asText()
-        ).isEqualTo("2026-07-24T10:30:15.123Z");
-        assertThat(json.get("databus.event.lineage.stage1.host").asText())
+        assertThat(json.get("databus.flow.name")).isNull();
+
+        var databus = json.get("databus");
+        var flow = databus.get("flow");
+        var lineage = databus.get("event").get("lineage");
+        var stage1 = lineage.get("stage1");
+
+        assertThat(flow.get("name").asText()).isEqualTo("payments");
+        assertThat(flow.get("owner").get("group").asText())
+                .isEqualTo("configured-group");
+        assertThat(flow.get("owner").get("entity").asText())
+                .isEqualTo("configured-entity");
+        assertThat(flow.get("owner").get("name").asText())
+                .isEqualTo("configured-owner");
+        assertThat(flow.get("provider").get("name").asText())
+                .isEqualTo("configured-provider");
+        assertThat(flow.get("provider").get("source").asText())
+                .isEqualTo("configured-source");
+        assertThat(flow.get("format").get("version").asText())
+                .isEqualTo("2.0.0");
+        assertThat(flow.get("format").get("type").asText())
+                .isEqualTo("NDJSON");
+        assertThat(flow.get("retention").asText())
+                .isEqualTo("month");
+        assertThat(lineage.get("last_stage").asInt()).isEqualTo(1);
+        assertThat(stage1.get("location").asText()).isEqualTo("TEST");
+        assertThat(stage1.get("pipeline_id").asText())
+                .isEqualTo("configured_pipeline");
+        assertThat(stage1.get("processing_duration_ms").asInt())
+                .isEqualTo(250);
+        assertThat(stage1.get("timestamp").asText())
+                .isEqualTo("2026-07-24T10:30:15.123Z");
+        assertThat(stage1.get("host").asText())
                 .isEqualTo("integration-host");
-        assertThat(
-                json.get("databus.event.lineage.stage1.event_size").asInt()
-        ).isEqualTo(payload.length);
+        assertThat(stage1.get("event_size").asInt()).isEqualTo(payload.length);
         assertThat(json.get("originalMessage").get("amount").asInt())
                 .isEqualTo(42);
     }
@@ -89,6 +113,7 @@ class PublishEventServiceTest {
                 new JacksonEventSerializerAdapter(objectMapper),
                 () -> "host",
                 Clock.systemUTC(),
+                configuredTemplate(),
                 10
         );
 
@@ -99,5 +124,24 @@ class PublishEventServiceTest {
                         "message trop volumineux"
                 )
         )).isInstanceOf(MessageTooLargeException.class);
+    }
+
+    private static DatabusEventTemplate configuredTemplate() {
+        return new DatabusEventTemplate(
+                new Owner(
+                        "configured-group",
+                        "configured-entity",
+                        "configured-owner"
+                ),
+                new Provider(
+                        "configured-provider",
+                        "configured-source"
+                ),
+                new FlowFormat("2.0.0", "NDJSON"),
+                "month",
+                "TEST",
+                "configured_pipeline",
+                250
+        );
     }
 }

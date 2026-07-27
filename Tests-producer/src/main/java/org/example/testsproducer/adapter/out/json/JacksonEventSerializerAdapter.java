@@ -17,7 +17,7 @@ public class JacksonEventSerializerAdapter implements EventSerializerPort {
     @Override
     public byte[] serialize(DatabusEvent event) {
         try {
-            return objectMapper.writeValueAsBytes(event.fields());
+            return objectMapper.writeValueAsBytes(DatabusEventJson.from(event));
         } catch (Exception exception) {
             throw new EventSerializationException(
                     "Impossible de sérialiser l'événement Databus",

@@ -214,32 +214,52 @@ Réponse après acquittement par Kafka :
 
 ## Message Kafka produit
 
-Les noms Databus restent des clés JSON plates :
+Le message utilise une structure JSON imbriquée :
 
 ```json
 {
-  "databus.flow.name": "payments",
-  "databus.flow.owner.group": "itgp",
-  "databus.flow.owner.entity": "itgp",
-  "databus.flow.owner.name": "itgp",
-  "databus.flow.provider.name": "itgp",
-  "databus.flow.provider.source": "application",
-  "databus.flow.format.version": "1.0.0",
-  "databus.flow.format.type": "JSON",
-  "databus.flow.retention": "year",
-  "databus.event.lineage.last_stage": 1,
-  "databus.event.lineage.stage1.location": "MN",
-  "databus.event.lineage.stage1.pipeline_id": "integrations_tests",
-  "databus.event.lineage.stage1.timestamp": "2026-07-24T10:30:15.123Z",
-  "databus.event.lineage.stage1.processing_duration_ms": 100,
-  "databus.event.lineage.stage1.host": "hostname-machine",
-  "databus.event.lineage.stage1.event_size": 689,
+  "databus": {
+    "flow": {
+      "name": "payments",
+      "owner": {
+        "group": "itgp",
+        "entity": "itgp",
+        "name": "itgp"
+      },
+      "provider": {
+        "name": "itgp",
+        "source": "application"
+      },
+      "format": {
+        "version": "1.0.0",
+        "type": "JSON"
+      },
+      "retention": "year"
+    },
+    "event": {
+      "lineage": {
+        "last_stage": 1,
+        "stage1": {
+          "timestamp": "2026-07-24T10:30:15.123Z",
+          "pipeline_id": "integrations_tests",
+          "host": "hostname-machine",
+          "event_size": 689,
+          "location": "MN",
+          "processing_duration_ms": 100
+        }
+      }
+    }
+  },
   "originalMessage": "2026-07-24 INFO Paiement accepté"
 }
 ```
 
 `event_size` correspond exactement au nombre d'octets UTF-8 du JSON compact
 final envoyé dans Kafka. La clé Kafka est le nom du flux.
+
+Le modèle accepte plusieurs stages, exposés directement sous `lineage` avec
+les noms `stage1`, `stage2`, etc. `last_stage` est calculé automatiquement à
+partir du numéro le plus élevé. Le serveur crée actuellement le `stage1`.
 
 ## Tests
 
