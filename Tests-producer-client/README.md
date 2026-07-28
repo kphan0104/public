@@ -30,8 +30,9 @@ il utilise toujours `integration.events`, sans lire `KAFKA_TOPIC` dans
 l'environnement.
 
 Les fichiers sans extension et `.msg` sont traités par ordre alphabétique. Ils
-doivent tous contenir un JSON valide et non nul. Les fichiers cachés et les
-autres extensions sont ignorés.
+peuvent contenir n'importe quel message texte : leur contenu est envoyé tel
+quel dans le champ `originalMessage`. Les fichiers cachés et les autres
+extensions sont ignorés.
 
 ## Exécution
 
@@ -68,8 +69,8 @@ python3 send_original_messages.py flux1
 ```
 
 Le script s'arrête à la première erreur HTTP. Toutes les erreurs locales
-(flux absent, configuration absente, topic introuvable ou JSON invalide) sont
-détectées avant le premier envoi.
+(flux absent, configuration absente ou topic introuvable) sont détectées avant
+le premier envoi.
 
 ## Aide
 

@@ -174,7 +174,7 @@ obligatoires :
 
 - `topic` : nom du topic Kafka ;
 - `flowName` : nom du flux ;
-- `originalMessage` : fichier contenant un JSON valide et non nul.
+- `originalMessage` : fichier contenant le message texte à publier.
 
 Exemple :
 
@@ -183,13 +183,14 @@ curl --fail-with-body \
   --request POST \
   --form 'topic=integration.events' \
   --form 'flowName=payments' \
-  --form 'originalMessage=@./originalMessage.json;type=application/json' \
+  --form 'originalMessage=@./originalMessage.msg;type=text/plain' \
   http://localhost:8080/api/v1/events
 ```
 
-Il ne faut pas ajouter manuellement le header `Content-Type` : `curl` génère
-le type multipart et sa boundary. Le contenu du fichier devient directement
-la valeur JSON de `originalMessage` dans le message Kafka.
+Il ne faut pas ajouter manuellement le header `Content-Type` de la requête :
+`curl` génère le type multipart et sa boundary. Le contenu texte du fichier
+devient la valeur du champ `originalMessage` dans le message Kafka, sans être
+interprété comme du JSON.
 
 Réponse après acquittement par Kafka :
 

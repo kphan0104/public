@@ -14,7 +14,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,12 +49,7 @@ class PublishEventServiceTest {
                 new PublishEventCommand(
                         "integration.events",
                         "payments",
-                        Map.of(
-                                "message",
-                                "paiement accepté",
-                                "amount",
-                                42
-                        )
+                        "2026-07-28 INFO paiement accepté amount=42"
                 )
         );
 
@@ -100,8 +94,8 @@ class PublishEventServiceTest {
         assertThat(stage1.get("host").asText())
                 .isEqualTo("integration-host");
         assertThat(stage1.get("event_size").asInt()).isEqualTo(payload.length);
-        assertThat(json.get("originalMessage").get("amount").asInt())
-                .isEqualTo(42);
+        assertThat(json.get("originalMessage").asText())
+                .isEqualTo("2026-07-28 INFO paiement accepté amount=42");
     }
 
     @Test

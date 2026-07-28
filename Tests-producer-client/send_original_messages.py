@@ -178,24 +178,6 @@ def find_original_messages(flow_directory: Path) -> List[Path]:
     return messages
 
 
-def validate_json_file(message: Path) -> None:
-    try:
-        with message.open("r", encoding="utf-8-sig") as stream:
-            value = json.load(stream)
-    except (OSError, UnicodeError, json.JSONDecodeError) as exception:
-        raise OriginalMessageError(
-            "Le fichier '{}' ne contient pas un JSON valide : {}".format(
-                message,
-                exception,
-            )
-        ) from exception
-
-    if value is None:
-        raise OriginalMessageError(
-            "Le fichier '{}' contient null, ce qui est interdit".format(message)
-        )
-
-
 def build_endpoint_url(base_url: str) -> str:
     normalized_url = base_url.strip().rstrip("/")
     parsed_url = urlparse(normalized_url)
@@ -234,9 +216,9 @@ def encode_multipart(
     body.extend(b"--" + boundary_bytes + b"\r\n")
     body.extend(
         b'Content-Disposition: form-data; name="originalMessage"; '
-        b'filename="originalMessage.json"\r\n'
+        b'filename="originalMessage"\r\n'
     )
-    body.extend(b"Content-Type: application/json\r\n\r\n")
+    body.extend(b"Content-Type: text/plain; charset=utf-8\r\n\r\n")
     body.extend(message.read_bytes())
     body.extend(b"\r\n--" + boundary_bytes + b"--\r\n")
 
@@ -315,8 +297,6 @@ def execute(args: argparse.Namespace) -> int:
     configuration, version = find_latest_configuration(flow_directory)
     topic = extract_default_topic(configuration)
     messages = find_original_messages(flow_directory)
-    for message in messages:
-        validate_json_file(message)
 
     endpoint_url = build_endpoint_url(TESTS_PRODUCER_URL)
 

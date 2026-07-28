@@ -5,7 +5,7 @@ import java.util.Objects;
 public record PublishEventCommand(
         String topic,
         String flowName,
-        Object originalMessage
+        String originalMessage
 ) {
     public PublishEventCommand {
         Objects.requireNonNull(topic, "topic");

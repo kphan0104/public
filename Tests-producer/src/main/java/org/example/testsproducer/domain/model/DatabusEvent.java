@@ -4,7 +4,7 @@ import java.util.Objects;
 
 public record DatabusEvent(
         Databus databus,
-        Object originalMessage
+        String originalMessage
 ) {
     public DatabusEvent {
         Objects.requireNonNull(databus, "databus");

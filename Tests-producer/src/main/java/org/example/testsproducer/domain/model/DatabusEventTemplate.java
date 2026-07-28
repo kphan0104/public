@@ -34,7 +34,7 @@ public record DatabusEventTemplate(
 
     public DatabusEvent create(
             String flowName,
-            Object originalMessage,
+            String originalMessage,
             Instant timestamp,
             String hostname
     ) {

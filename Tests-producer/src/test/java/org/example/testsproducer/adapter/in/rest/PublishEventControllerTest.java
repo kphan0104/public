@@ -13,7 +13,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,7 +47,7 @@ class PublishEventControllerTest {
         );
 
         mockMvc.perform(multipart("/api/v1/events")
-                .file(jsonFile("{\"id\":12}"))
+                .file(messageFile("2026-07-28 INFO paiement accepté"))
                 .param("topic", "integration.events")
                 .param("flowName", "payments"))
                 .andExpect(status().isCreated())
@@ -61,7 +60,7 @@ class PublishEventControllerTest {
         var command = ArgumentCaptor.forClass(PublishEventCommand.class);
         verify(useCase).publish(command.capture());
         assertThat(command.getValue().originalMessage())
-                .isEqualTo(Map.of("id", 12));
+                .isEqualTo("2026-07-28 INFO paiement accepté");
     }
 
     @Test
@@ -78,31 +77,18 @@ class PublishEventControllerTest {
     @Test
     void rejectsAnInvalidTopic() throws Exception {
         mockMvc.perform(multipart("/api/v1/events")
-                .file(jsonFile("{\"message\":\"log\"}"))
+                .file(messageFile("message log"))
                 .param("topic", "topic interdit")
                 .param("flowName", "payments"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.topic").isNotEmpty());
     }
 
-    @Test
-    void rejectsAnInvalidJsonFile() throws Exception {
-        mockMvc.perform(multipart("/api/v1/events")
-                .file(jsonFile("{json invalide}"))
-                .param("topic", "integration.events")
-                .param("flowName", "payments"))
-                .andExpect(status().isBadRequest())
-                .andExpect(
-                        jsonPath("$.title")
-                                .value("originalMessage JSON invalide")
-                );
-    }
-
-    private static MockMultipartFile jsonFile(String content) {
+    private static MockMultipartFile messageFile(String content) {
         return new MockMultipartFile(
                 "originalMessage",
-                "originalMessage.json",
-                MediaType.APPLICATION_JSON_VALUE,
+                "originalMessage.msg",
+                MediaType.TEXT_PLAIN_VALUE,
                 content.getBytes(StandardCharsets.UTF_8)
         );
     }

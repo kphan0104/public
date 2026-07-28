@@ -12,7 +12,7 @@ import java.util.Map;
 
 record DatabusEventJson(
         DatabusJson databus,
-        Object originalMessage
+        String originalMessage
 ) {
     static DatabusEventJson from(DatabusEvent source) {
         Flow flow = source.databus().flow();

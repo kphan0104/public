@@ -108,7 +108,7 @@ public class ApiExceptionHandler {
     ) {
         return problem(
                 HttpStatus.BAD_REQUEST,
-                "originalMessage JSON invalide",
+                "originalMessage invalide",
                 exception.getMessage()
         );
     }

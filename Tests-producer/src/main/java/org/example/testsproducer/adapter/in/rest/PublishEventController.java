@@ -15,24 +15,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/v1/events")
 public class PublishEventController {
 
     private final PublishEventUseCase publishEventUseCase;
-    private final ObjectMapper objectMapper;
 
-    public PublishEventController(
-            PublishEventUseCase publishEventUseCase,
-            ObjectMapper objectMapper
-    ) {
+    public PublishEventController(PublishEventUseCase publishEventUseCase) {
         this.publishEventUseCase = publishEventUseCase;
-        this.objectMapper = objectMapper;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -63,29 +57,22 @@ public class PublishEventController {
                 .body(PublishEventResponse.from(result));
     }
 
-    private Object readOriginalMessage(MultipartFile originalMessage) {
+    private String readOriginalMessage(MultipartFile originalMessage) {
         if (originalMessage.isEmpty()) {
             throw new InvalidOriginalMessageException(
                     "Le fichier originalMessage est vide"
             );
         }
-        Object parsedMessage;
         try {
-            parsedMessage = objectMapper.readValue(
-                    originalMessage.getInputStream(),
-                    Object.class
+            return new String(
+                    originalMessage.getBytes(),
+                    StandardCharsets.UTF_8
             );
-        } catch (IOException | JacksonException exception) {
+        } catch (IOException exception) {
             throw new InvalidOriginalMessageException(
-                    "Le fichier originalMessage ne contient pas un JSON valide",
+                    "Impossible de lire le fichier originalMessage",
                     exception
             );
         }
-        if (parsedMessage == null) {
-            throw new InvalidOriginalMessageException(
-                    "Le fichier originalMessage ne peut pas contenir null"
-            );
-        }
-        return parsedMessage;
     }
 }
