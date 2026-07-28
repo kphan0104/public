@@ -8,10 +8,12 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.validation.method.ParameterErrors;
+import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.net.URI;
 import java.util.LinkedHashMap;
@@ -46,9 +48,28 @@ public class ApiExceptionHandler {
                                 error.getDefaultMessage()
                         )
                 );
+            } else {
+                addParameterErrors(errors, result);
             }
         });
         return validationProblem(errors);
+    }
+
+    private void addParameterErrors(
+            Map<String, String> errors,
+            ParameterValidationResult result
+    ) {
+        String parameterName = result.getMethodParameter().getParameterName();
+        if (parameterName == null) {
+            parameterName = "parameter";
+        }
+        String finalParameterName = parameterName;
+        result.getResolvableErrors().forEach(error ->
+                errors.putIfAbsent(
+                        finalParameterName,
+                        error.getDefaultMessage()
+                )
+        );
     }
 
     private ProblemDetail validationProblem(Map<String, String> errors) {
@@ -66,6 +87,28 @@ public class ApiExceptionHandler {
         return problem(
                 HttpStatus.PAYLOAD_TOO_LARGE,
                 "Message trop volumineux",
+                exception.getMessage()
+        );
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ProblemDetail handleUploadTooLarge(
+            MaxUploadSizeExceededException exception
+    ) {
+        return problem(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                "Fichier trop volumineux",
+                "Le fichier originalMessage dépasse la taille autorisée"
+        );
+    }
+
+    @ExceptionHandler(InvalidOriginalMessageException.class)
+    ProblemDetail handleInvalidOriginalMessage(
+            InvalidOriginalMessageException exception
+    ) {
+        return problem(
+                HttpStatus.BAD_REQUEST,
+                "originalMessage JSON invalide",
                 exception.getMessage()
         );
     }

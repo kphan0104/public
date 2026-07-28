@@ -169,35 +169,27 @@ L'API écoute par défaut sur le port `8080`. Le health check est disponible sur
 
 ### `POST /api/v1/events`
 
-Les trois champs sont obligatoires :
+L'endpoint attend une requête `multipart/form-data` avec trois parties
+obligatoires :
 
-```json
-{
-  "topic": "integration.events",
-  "flowName": "payments",
-  "originalMessage": {
-    "level": "INFO",
-    "message": "Paiement accepté"
-  }
-}
-```
-
-`originalMessage` accepte n'importe quelle valeur JSON non nulle : chaîne,
-objet, tableau, nombre ou booléen.
+- `topic` : nom du topic Kafka ;
+- `flowName` : nom du flux ;
+- `originalMessage` : fichier contenant un JSON valide et non nul.
 
 Exemple :
 
 ```bash
 curl --fail-with-body \
   --request POST \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "topic": "integration.events",
-    "flowName": "payments",
-    "originalMessage": "2026-07-24 INFO Paiement accepté"
-  }' \
+  --form 'topic=integration.events' \
+  --form 'flowName=payments' \
+  --form 'originalMessage=@./originalMessage.json;type=application/json' \
   http://localhost:8080/api/v1/events
 ```
+
+Il ne faut pas ajouter manuellement le header `Content-Type` : `curl` génère
+le type multipart et sa boundary. Le contenu du fichier devient directement
+la valeur JSON de `originalMessage` dans le message Kafka.
 
 Réponse après acquittement par Kafka :
 
