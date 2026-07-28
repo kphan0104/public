@@ -38,17 +38,22 @@ Python 3.8 ou supérieur est recommandé. Le script utilise uniquement la
 bibliothèque standard de Python : aucune installation avec `pip` n'est
 nécessaire.
 
+Renseigner l'URL de `tests-producer` directement en haut de
+`send_original_messages.py` :
+
+```python
+TESTS_PRODUCER_URL = "http://nom-machine:3000"
+```
+
 Sur macOS :
 
 ```bash
-export TESTS_PRODUCER_URL='http://nom-machine:3000'
 python3 send_original_messages.py --root '/chemin/vers/racine-projet'
 ```
 
 Sur Windows PowerShell :
 
 ```powershell
-$env:TESTS_PRODUCER_URL = 'http://nom-machine:3000'
 py send_original_messages.py --root 'C:\chemin\vers\racine-projet'
 ```
 
@@ -63,10 +68,6 @@ Il peut aussi être fourni pour automatiser l'exécution :
 ```bash
 python3 send_original_messages.py --root . --flow flux1
 ```
-
-Par défaut, les variables proxy du poste sont ignorées, ce qui évite le proxy
-local d'entreprise vu sur `127.0.0.1`. Utiliser `--use-system-proxy` uniquement
-si l'accès à l'API nécessite réellement le proxy du poste.
 
 Le script s'arrête à la première erreur HTTP. Toutes les erreurs locales
 (flux absent, configuration absente, topic introuvable ou JSON invalide) sont

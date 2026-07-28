@@ -2,6 +2,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import send_original_messages as client
 
@@ -13,33 +14,31 @@ class FakeHeaders:
 
 class FakeResponse:
     status = 201
+    reason = "Created"
     headers = FakeHeaders()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exception_type, exception, traceback):
-        return False
-
-    def getcode(self):
-        return self.status
 
     def read(self):
         return b'{"status":"published"}'
 
 
-class FakeOpener:
+class FakeConnection:
     def __init__(self):
-        self.request = None
+        self.sent_request = None
+        self.closed = False
 
-    def open(self, request, timeout):
-        self.request = {
-            "url": request.full_url,
-            "body": request.data,
-            "content_type": request.get_header("Content-type"),
-            "timeout": timeout,
+    def request(self, method, path, body, headers):
+        self.sent_request = {
+            "method": method,
+            "path": path,
+            "body": body,
+            "content_type": headers["Content-Type"],
         }
+
+    def getresponse(self):
         return FakeResponse()
+
+    def close(self):
+        self.closed = True
 
 
 class ClientTest(unittest.TestCase):
@@ -128,29 +127,31 @@ class ClientTest(unittest.TestCase):
     def test_sends_multipart_request(self):
         message = self.messages / "message.msg"
         message.write_text('{"id": 42}', encoding="utf-8")
-        opener = FakeOpener()
+        connection = FakeConnection()
 
-        result = client.send_message(
-            opener,
-            "http://server:3000/api/v1/events",
-            "integration.events",
-            "payments",
-            message,
-            30.0,
-        )
+        with patch.object(
+            client,
+            "HTTPConnection",
+            return_value=connection,
+        ) as connection_factory:
+            result = client.send_message(
+                "http://server:3000/api/v1/events",
+                "integration.events",
+                "payments",
+                message,
+            )
 
         self.assertEqual({"status": "published"}, result)
-        self.assertEqual(
-            "http://server:3000/api/v1/events",
-            opener.request["url"],
-        )
-        self.assertEqual(30.0, opener.request["timeout"])
+        connection_factory.assert_called_once_with("server", 3000)
+        self.assertEqual("POST", connection.sent_request["method"])
+        self.assertEqual("/api/v1/events", connection.sent_request["path"])
+        self.assertTrue(connection.closed)
         self.assertTrue(
-            opener.request["content_type"].startswith(
+            connection.sent_request["content_type"].startswith(
                 "multipart/form-data; boundary="
             )
         )
-        body = opener.request["body"]
+        body = connection.sent_request["body"]
         self.assertIn(b'name="topic"\r\n\r\nintegration.events', body)
         self.assertIn(b'name="flowName"\r\n\r\npayments', body)
         self.assertIn(b'name="originalMessage"', body)

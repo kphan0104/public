@@ -3,15 +3,16 @@
 
 import argparse
 import json
-import os
 import re
 import sys
 import uuid
+from http.client import HTTPConnection, HTTPSConnection, HTTPException
 from pathlib import Path
 from typing import List, Optional, Tuple
-from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-from urllib.request import ProxyHandler, Request, build_opener
+
+
+TESTS_PRODUCER_URL = "http://nom-machine:3000"
 
 
 CONF_VERSION_PATTERN = re.compile(
@@ -242,54 +243,56 @@ def encode_multipart(
     return bytes(body), "multipart/form-data; boundary={}".format(boundary)
 
 
-def create_http_opener(use_system_proxy: bool):
-    """Crée un client HTTP en ignorant le proxy système par défaut."""
-    proxy_handler = ProxyHandler() if use_system_proxy else ProxyHandler({})
-    return build_opener(proxy_handler)
-
-
 def send_message(
-    opener,
     endpoint_url: str,
     topic: str,
     flow_name: str,
     message: Path,
-    timeout: float,
 ) -> dict:
+    parsed_url = urlparse(endpoint_url)
+    connection_type = (
+        HTTPSConnection if parsed_url.scheme == "https" else HTTPConnection
+    )
+    connection = connection_type(parsed_url.hostname, parsed_url.port)
+    request_path = parsed_url.path or "/"
+    if parsed_url.query:
+        request_path += "?" + parsed_url.query
+
     try:
         body, content_type = encode_multipart(topic, flow_name, message)
-        request = Request(
-            endpoint_url,
-            data=body,
+        connection.request(
+            "POST",
+            request_path,
+            body=body,
             headers={
                 "Accept": "application/json",
                 "Content-Type": content_type,
             },
-            method="POST",
         )
-        with opener.open(request, timeout=timeout) as response:
-            status = getattr(response, "status", response.getcode())
-            charset = response.headers.get_content_charset() or "utf-8"
-            response_text = response.read().decode(charset, errors="replace")
-    except HTTPError as exception:
-        details = exception.read().decode("utf-8", errors="replace")[:1000]
-        if details:
-            details = " - {}".format(details)
-        raise ApiRequestError(
-            "Échec de l'envoi de '{}': HTTP {} {}{}".format(
-                message,
-                exception.code,
-                exception.reason,
-                details,
-            )
-        ) from exception
-    except (OSError, URLError) as exception:
+        response = connection.getresponse()
+        status = response.status
+        charset = response.headers.get_content_charset() or "utf-8"
+        response_text = response.read().decode(charset, errors="replace")
+    except (OSError, HTTPException) as exception:
         raise ApiRequestError(
             "Échec de l'envoi de '{}': {}".format(
                 message,
                 exception,
             )
         ) from exception
+    finally:
+        connection.close()
+
+    if not 200 <= status < 300:
+        details = " - {}".format(response_text[:1000]) if response_text else ""
+        raise ApiRequestError(
+            "Échec de l'envoi de '{}': HTTP {} {}{}".format(
+                message,
+                status,
+                response.reason,
+                details,
+            )
+        )
 
     try:
         return json.loads(response_text)
@@ -323,27 +326,21 @@ def execute(args: argparse.Namespace) -> int:
     for message in messages:
         validate_json_file(message)
 
-    endpoint_url = build_endpoint_url(args.url)
-    opener = create_http_opener(args.use_system_proxy)
+    endpoint_url = build_endpoint_url(TESTS_PRODUCER_URL)
 
     print("Flux             : {}".format(flow_name))
     print("Configuration     : {} (version {})".format(configuration.name, version))
     print("Topic             : {}".format(topic))
     print("API               : {}".format(endpoint_url))
     print("originalMessages  : {}".format(len(messages)))
-    print("Proxy système     : {}".format(
-        "activé" if args.use_system_proxy else "ignoré"
-    ))
 
     for index, message in enumerate(messages, start=1):
         print("[{}/{}] Envoi de {}...".format(index, len(messages), message.name))
         result = send_message(
-            opener,
             endpoint_url,
             topic,
             flow_name,
             message,
-            args.timeout,
         )
         print("         OK: {}".format(result))
 
@@ -367,34 +364,12 @@ def create_parser() -> argparse.ArgumentParser:
         "--flow",
         help="nom du flux ; demandé interactivement si absent",
     )
-    parser.add_argument(
-        "--url",
-        default=os.environ.get("TESTS_PRODUCER_URL"),
-        help="URL de base de l'API (ou variable TESTS_PRODUCER_URL)",
-    )
-    parser.add_argument(
-        "--timeout",
-        type=float,
-        default=30.0,
-        help="timeout HTTP en secondes (défaut: 30)",
-    )
-    parser.add_argument(
-        "--use-system-proxy",
-        action="store_true",
-        help="utilise les variables HTTP_PROXY/HTTPS_PROXY du poste",
-    )
     return parser
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     parser = create_parser()
     args = parser.parse_args(argv)
-    if not args.url:
-        parser.error(
-            "--url est obligatoire si TESTS_PRODUCER_URL n'est pas définie"
-        )
-    if args.timeout <= 0:
-        parser.error("--timeout doit être strictement positif")
 
     try:
         return execute(args)
