@@ -6,11 +6,12 @@ import json
 import os
 import re
 import sys
+import uuid
 from pathlib import Path
 from typing import List, Optional, Tuple
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-
-import requests
+from urllib.request import ProxyHandler, Request, build_opener
 
 
 CONF_VERSION_PATTERN = re.compile(
@@ -206,8 +207,49 @@ def build_endpoint_url(base_url: str) -> str:
     return normalized_url + "/api/v1/events"
 
 
+def encode_multipart(
+    topic: str,
+    flow_name: str,
+    message: Path,
+) -> Tuple[bytes, str]:
+    """Construit le multipart/form-data sans dépendance externe."""
+    boundary = "----tests-producer-{}".format(uuid.uuid4().hex)
+    boundary_bytes = boundary.encode("ascii")
+    body = bytearray()
+
+    def add_text_field(name: str, value: str) -> None:
+        body.extend(b"--" + boundary_bytes + b"\r\n")
+        body.extend(
+            'Content-Disposition: form-data; name="{}"\r\n\r\n'.format(
+                name
+            ).encode("ascii")
+        )
+        body.extend(value.encode("utf-8"))
+        body.extend(b"\r\n")
+
+    add_text_field("topic", topic)
+    add_text_field("flowName", flow_name)
+
+    body.extend(b"--" + boundary_bytes + b"\r\n")
+    body.extend(
+        b'Content-Disposition: form-data; name="originalMessage"; '
+        b'filename="originalMessage.json"\r\n'
+    )
+    body.extend(b"Content-Type: application/json\r\n\r\n")
+    body.extend(message.read_bytes())
+    body.extend(b"\r\n--" + boundary_bytes + b"--\r\n")
+
+    return bytes(body), "multipart/form-data; boundary={}".format(boundary)
+
+
+def create_http_opener(use_system_proxy: bool):
+    """Crée un client HTTP en ignorant le proxy système par défaut."""
+    proxy_handler = ProxyHandler() if use_system_proxy else ProxyHandler({})
+    return build_opener(proxy_handler)
+
+
 def send_message(
-    session: requests.Session,
+    opener,
     endpoint_url: str,
     topic: str,
     flow_name: str,
@@ -215,37 +257,44 @@ def send_message(
     timeout: float,
 ) -> dict:
     try:
-        with message.open("rb") as stream:
-            response = session.post(
-                endpoint_url,
-                data={"topic": topic, "flowName": flow_name},
-                files={
-                    "originalMessage": (
-                        message.name,
-                        stream,
-                        "application/json",
-                    )
-                },
-                timeout=timeout,
-            )
-        response.raise_for_status()
-    except (OSError, requests.RequestException) as exception:
-        response = getattr(exception, "response", None)
-        details = ""
-        if response is not None and response.text:
-            details = " - {}".format(response.text[:1000])
+        body, content_type = encode_multipart(topic, flow_name, message)
+        request = Request(
+            endpoint_url,
+            data=body,
+            headers={
+                "Accept": "application/json",
+                "Content-Type": content_type,
+            },
+            method="POST",
+        )
+        with opener.open(request, timeout=timeout) as response:
+            status = getattr(response, "status", response.getcode())
+            charset = response.headers.get_content_charset() or "utf-8"
+            response_text = response.read().decode(charset, errors="replace")
+    except HTTPError as exception:
+        details = exception.read().decode("utf-8", errors="replace")[:1000]
+        if details:
+            details = " - {}".format(details)
         raise ApiRequestError(
-            "Échec de l'envoi de '{}': {}{}".format(
+            "Échec de l'envoi de '{}': HTTP {} {}{}".format(
+                message,
+                exception.code,
+                exception.reason,
+                details,
+            )
+        ) from exception
+    except (OSError, URLError) as exception:
+        raise ApiRequestError(
+            "Échec de l'envoi de '{}': {}".format(
                 message,
                 exception,
-                details,
             )
         ) from exception
 
     try:
-        return response.json()
-    except ValueError:
-        return {"status": response.status_code, "body": response.text}
+        return json.loads(response_text)
+    except json.JSONDecodeError:
+        return {"status": status, "body": response_text}
 
 
 def execute(args: argparse.Namespace) -> int:
@@ -275,8 +324,7 @@ def execute(args: argparse.Namespace) -> int:
         validate_json_file(message)
 
     endpoint_url = build_endpoint_url(args.url)
-    session = requests.Session()
-    session.trust_env = args.use_system_proxy
+    opener = create_http_opener(args.use_system_proxy)
 
     print("Flux             : {}".format(flow_name))
     print("Configuration     : {} (version {})".format(configuration.name, version))
@@ -290,7 +338,7 @@ def execute(args: argparse.Namespace) -> int:
     for index, message in enumerate(messages, start=1):
         print("[{}/{}] Envoi de {}...".format(index, len(messages), message.name))
         result = send_message(
-            session,
+            opener,
             endpoint_url,
             topic,
             flow_name,

@@ -6,29 +6,37 @@ from pathlib import Path
 import send_original_messages as client
 
 
+class FakeHeaders:
+    def get_content_charset(self):
+        return "utf-8"
+
+
 class FakeResponse:
-    status_code = 201
-    text = '{"status":"published"}'
+    status = 201
+    headers = FakeHeaders()
 
-    def raise_for_status(self):
-        return None
+    def __enter__(self):
+        return self
 
-    def json(self):
-        return {"status": "published"}
+    def __exit__(self, exception_type, exception, traceback):
+        return False
+
+    def getcode(self):
+        return self.status
+
+    def read(self):
+        return b'{"status":"published"}'
 
 
-class FakeSession:
+class FakeOpener:
     def __init__(self):
         self.request = None
 
-    def post(self, url, data, files, timeout):
-        filename, stream, content_type = files["originalMessage"]
+    def open(self, request, timeout):
         self.request = {
-            "url": url,
-            "data": data,
-            "filename": filename,
-            "content": stream.read(),
-            "content_type": content_type,
+            "url": request.full_url,
+            "body": request.data,
+            "content_type": request.get_header("Content-type"),
             "timeout": timeout,
         }
         return FakeResponse()
@@ -120,10 +128,10 @@ class ClientTest(unittest.TestCase):
     def test_sends_multipart_request(self):
         message = self.messages / "message.msg"
         message.write_text('{"id": 42}', encoding="utf-8")
-        session = FakeSession()
+        opener = FakeOpener()
 
         result = client.send_message(
-            session,
+            opener,
             "http://server:3000/api/v1/events",
             "integration.events",
             "payments",
@@ -133,15 +141,22 @@ class ClientTest(unittest.TestCase):
 
         self.assertEqual({"status": "published"}, result)
         self.assertEqual(
-            {"topic": "integration.events", "flowName": "payments"},
-            session.request["data"],
+            "http://server:3000/api/v1/events",
+            opener.request["url"],
         )
-        self.assertEqual("message.msg", session.request["filename"])
-        self.assertEqual(b'{"id": 42}', session.request["content"])
-        self.assertEqual(
-            "application/json",
-            session.request["content_type"],
+        self.assertEqual(30.0, opener.request["timeout"])
+        self.assertTrue(
+            opener.request["content_type"].startswith(
+                "multipart/form-data; boundary="
+            )
         )
+        body = opener.request["body"]
+        self.assertIn(b'name="topic"\r\n\r\nintegration.events', body)
+        self.assertIn(b'name="flowName"\r\n\r\npayments', body)
+        self.assertIn(b'name="originalMessage"', body)
+        self.assertIn(b'filename="originalMessage.json"', body)
+        self.assertIn(b"Content-Type: application/json", body)
+        self.assertIn(b'{"id": 42}', body)
 
 
 if __name__ == "__main__":

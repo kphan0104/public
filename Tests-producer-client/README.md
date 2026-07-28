@@ -32,14 +32,15 @@ Les fichiers sans extension et `.msg` sont traités par ordre alphabétique. Ils
 doivent tous contenir un JSON valide et non nul. Les fichiers cachés et les
 autres extensions sont ignorés.
 
-## Installation
+## Exécution
 
-Python 3.8 ou supérieur est recommandé.
+Python 3.8 ou supérieur est recommandé. Le script utilise uniquement la
+bibliothèque standard de Python : aucune installation avec `pip` n'est
+nécessaire.
 
 Sur macOS :
 
 ```bash
-python3 -m pip install -r requirements.txt
 export TESTS_PRODUCER_URL='http://nom-machine:3000'
 python3 send_original_messages.py --root '/chemin/vers/racine-projet'
 ```
@@ -47,7 +48,6 @@ python3 send_original_messages.py --root '/chemin/vers/racine-projet'
 Sur Windows PowerShell :
 
 ```powershell
-py -m pip install -r requirements.txt
 $env:TESTS_PRODUCER_URL = 'http://nom-machine:3000'
 py send_original_messages.py --root 'C:\chemin\vers\racine-projet'
 ```
