@@ -16,7 +16,7 @@ TESTS_PRODUCER_URL = "http://nom-machine:3000"
 
 
 CONF_VERSION_PATTERN = re.compile(
-    r"-v\.(?P<version>\d+(?:\.\d+)*)\.conf$",
+    r"-v(?P<version>\d+(?:\.\d+)*)\.conf$",
     re.IGNORECASE,
 )
 TOPIC_PATTERN = re.compile(
@@ -80,7 +80,7 @@ def find_latest_configuration(flow_directory: Path) -> Tuple[Path, str]:
 
     if not versioned_files:
         raise PipelineConfigurationError(
-            "Aucun fichier versionné '*-v.X.Y.conf' trouvé dans '{}'".format(
+            "Aucun fichier versionné '*-vX.Y.conf' trouvé dans '{}'".format(
                 flow_directory
             )
         )
@@ -301,16 +301,8 @@ def send_message(
 
 
 def execute(args: argparse.Namespace) -> int:
-    root_directory = args.root.expanduser().resolve()
-    if not root_directory.is_dir():
-        raise ClientError(
-            "Répertoire racine introuvable : '{}'".format(root_directory)
-        )
-
-    flow_input = args.flow
-    if flow_input is None:
-        flow_input = input("Nom du flux : ")
-    flow_name = validate_flow_name(flow_input)
+    flow_name = validate_flow_name(args.flow)
+    root_directory = Path.cwd().resolve()
     flow_directory = root_directory / flow_name
     if not flow_directory.is_dir():
         raise FlowNotFoundError(
@@ -355,14 +347,8 @@ def create_parser() -> argparse.ArgumentParser:
         )
     )
     parser.add_argument(
-        "--root",
-        type=Path,
-        default=Path.cwd(),
-        help="racine contenant les dossiers de flux (défaut: dossier courant)",
-    )
-    parser.add_argument(
-        "--flow",
-        help="nom du flux ; demandé interactivement si absent",
+        "flow",
+        help="nom du flux à traiter",
     )
     return parser
 
