@@ -43,10 +43,11 @@ class TestsProducerApplicationTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsByteArray();
-        var operation = objectMapper.readTree(response)
-                .get("paths")
+        var paths = objectMapper.readTree(response).get("paths");
+        var operation = paths
                 .get("/api/v1/events")
                 .get("post");
+        assertThat(paths.get("/api/v1/internal/events")).isNull();
         var parameters = operation.get("parameters");
 
         var flow = findParameter(parameters, "flow");

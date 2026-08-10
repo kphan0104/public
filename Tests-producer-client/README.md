@@ -21,8 +21,10 @@ racine-projet/
 ```
 
 `send_original_messages.py` lit les fichiers sans extension et `.msg` par ordre
-alphabétique, puis envoie leur contenu brut avec le nom du flux. Le serveur
-trouve lui-même le topic et applique les autres valeurs par défaut.
+alphabétique. Il sélectionne le dernier fichier `flux-vX.Y.conf`, extrait le
+topic par défaut de l'input Kafka, puis envoie au serveur le contenu brut, le
+nom du flux et ce topic. Un nouveau flux peut donc être testé sans avoir été
+ajouté au `flow-topics.yml` de `tests-producer`.
 
 Les fichiers peuvent contenir n'importe quel message texte : leur contenu est
 envoyé tel quel dans le champ `originalMessage`. Les fichiers cachés et les
@@ -58,8 +60,8 @@ tests-producer:
 ```
 
 Copier ce fichier à côté de `tests-producer.jar` et de `application.yml`, puis
-redémarrer le serveur. Cette liste alimente directement le sélecteur `flow` de
-Swagger.
+redémarrer le serveur. Cette liste alimente uniquement le sélecteur `flow` de
+Swagger ; elle n'est pas utilisée par `send_original_messages.py`.
 
 ## Exécution
 
@@ -96,8 +98,12 @@ python3 send_original_messages.py flux1
 ```
 
 Le script s'arrête à la première erreur HTTP. Toutes les erreurs locales
-(flux absent ou originalMessages absent) sont détectées avant le premier
-envoi.
+(flux absent, configuration absente, topic introuvable ou originalMessages
+absent) sont détectées avant le premier envoi.
+
+Le script appelle l'endpoint `/api/v1/internal/events`, volontairement masqué
+de Swagger. Cet endpoint reste néanmoins accessible sur le réseau si son URL
+est connue.
 
 ## Aide
 

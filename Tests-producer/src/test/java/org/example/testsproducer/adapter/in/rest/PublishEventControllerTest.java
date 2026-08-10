@@ -23,7 +23,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
         .status;
 
-@WebMvcTest(PublishEventController.class)
+@WebMvcTest({
+        PublishEventController.class,
+        ScriptPublishEventController.class
+})
 class PublishEventControllerTest {
 
     @Autowired
@@ -136,5 +139,38 @@ class PublishEventControllerTest {
                 .content("message log"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Flux inconnu"));
+    }
+
+    @Test
+    void scriptEndpointUsesTheExplicitTopicAndDefaultMetadata()
+            throws Exception {
+        when(useCase.publish(any())).thenReturn(
+                new PublishEventResult(
+                        "new-flow.events",
+                        0,
+                        2L,
+                        120,
+                        "2026-08-10T10:00:00Z"
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/internal/events")
+                .queryParam("flow", "new-flow")
+                .queryParam("topic", "new-flow.events")
+                .contentType(MediaType.TEXT_PLAIN)
+                .content("message du nouveau flux"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.topic").value("new-flow.events"));
+
+        var command = ArgumentCaptor.forClass(PublishEventCommand.class);
+        verify(useCase).publish(command.capture());
+        assertThat(command.getValue().flowName()).isEqualTo("new-flow");
+        assertThat(command.getValue().topic()).isEqualTo("new-flow.events");
+        assertThat(command.getValue().originalMessage())
+                .isEqualTo("message du nouveau flux");
+        assertThat(command.getValue().eventTemplate().owner().group())
+                .isEqualTo("itgp");
+        assertThat(command.getValue().eventTemplate().stage1PipelineId())
+                .isEqualTo("integrations_tests");
     }
 }

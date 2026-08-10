@@ -73,8 +73,8 @@ java \
 
 ### Association des flux aux topics
 
-Le topic n'est jamais fourni par l'appelant. Il est déterminé à partir du flux
-sélectionné et de `flow-topics.yml` :
+Pour l'API Swagger, le topic n'est pas fourni par l'appelant. Il est déterminé
+à partir du flux sélectionné et de `flow-topics.yml` :
 
 ```yaml
 tests-producer:
@@ -86,7 +86,8 @@ tests-producer:
 
 Les flux sont triés et affichés sous forme de liste déroulante dans Swagger.
 Après une modification de ce fichier, redémarrer l'application pour actualiser
-la liste.
+la liste. L'endpoint dédié au script Python accepte quant à lui un topic
+explicite et ne dépend pas de cette liste.
 
 ### Kafka SSL avec les JKS
 
@@ -248,6 +249,29 @@ curl --fail-with-body \
 Le contenu texte devient la valeur du champ `originalMessage` dans le message
 Kafka, sans être interprété comme du JSON. `timestamp`, `host`, `eventSize` et
 `lastStage` restent calculés automatiquement par le serveur.
+
+### `POST /api/v1/internal/events`
+
+Cet endpoint est réservé au script Python du projet principal. Il reçoit :
+
+- `flow` : nom du flux ;
+- `topic` : topic Kafka extrait du dernier pipeline Logstash versionné ;
+- un corps `text/plain` contenant l'`originalMessage`.
+
+Il utilise les valeurs Databus par défaut et permet de tester un nouveau flux
+sans l'ajouter préalablement à `flow-topics.yml` :
+
+```bash
+curl --fail-with-body \
+  --request POST \
+  --header 'Content-Type: text/plain; charset=utf-8' \
+  --data-binary '@./originalMessage.msg' \
+  'http://localhost:8080/api/v1/internal/events?flow=new-flow&topic=new-flow.events'
+```
+
+Le contrôleur est annoté `@Hidden` : il n'apparaît ni dans Swagger UI ni dans
+`/v3/api-docs`. Ce masquage est documentaire et ne constitue pas une mesure
+d'authentification ou de filtrage réseau.
 
 Réponse après acquittement par Kafka :
 

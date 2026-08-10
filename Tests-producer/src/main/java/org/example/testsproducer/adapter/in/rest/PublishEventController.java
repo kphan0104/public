@@ -15,9 +15,6 @@ import org.example.testsproducer.application.port.in.PublishEventCommand;
 import org.example.testsproducer.application.port.in.PublishEventUseCase;
 import org.example.testsproducer.config.FlowTopicsProperties;
 import org.example.testsproducer.domain.model.DatabusEventTemplate;
-import org.example.testsproducer.domain.model.FlowFormat;
-import org.example.testsproducer.domain.model.Owner;
-import org.example.testsproducer.domain.model.Provider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,18 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/events")
 public class PublishEventController {
-
-    static final String DEFAULT_OWNER_GROUP = "itgp";
-    static final String DEFAULT_OWNER_ENTITY = "itgp";
-    static final String DEFAULT_OWNER_NAME = "itgp";
-    static final String DEFAULT_PROVIDER_NAME = "itgp";
-    static final String DEFAULT_PROVIDER_SOURCE = "application";
-    static final String DEFAULT_FORMAT_VERSION = "1.0.0";
-    static final String DEFAULT_FORMAT_TYPE = "JSON";
-    static final String DEFAULT_RETENTION = "year";
-    static final String DEFAULT_LOCATION = "MN";
-    static final String DEFAULT_PIPELINE_ID = "integrations_tests";
-    static final String DEFAULT_PROCESSING_DURATION_MS = "100";
 
     private final PublishEventUseCase publishEventUseCase;
     private final FlowTopicsProperties flowTopics;
@@ -94,67 +79,90 @@ public class PublishEventController {
             String flow,
 
             @Parameter(description = "Groupe propriétaire")
-            @RequestParam(defaultValue = DEFAULT_OWNER_GROUP)
+            @RequestParam(
+                    defaultValue = EventTemplateFactory.DEFAULT_OWNER_GROUP
+            )
             @NotBlank
             @Size(max = 255)
             String ownerGroup,
 
             @Parameter(description = "Entité propriétaire")
-            @RequestParam(defaultValue = DEFAULT_OWNER_ENTITY)
+            @RequestParam(
+                    defaultValue = EventTemplateFactory.DEFAULT_OWNER_ENTITY
+            )
             @NotBlank
             @Size(max = 255)
             String ownerEntity,
 
             @Parameter(description = "Nom du propriétaire")
-            @RequestParam(defaultValue = DEFAULT_OWNER_NAME)
+            @RequestParam(
+                    defaultValue = EventTemplateFactory.DEFAULT_OWNER_NAME
+            )
             @NotBlank
             @Size(max = 255)
             String ownerName,
 
             @Parameter(description = "Nom du fournisseur")
-            @RequestParam(defaultValue = DEFAULT_PROVIDER_NAME)
+            @RequestParam(
+                    defaultValue = EventTemplateFactory.DEFAULT_PROVIDER_NAME
+            )
             @NotBlank
             @Size(max = 255)
             String providerName,
 
             @Parameter(description = "Source du fournisseur")
-            @RequestParam(defaultValue = DEFAULT_PROVIDER_SOURCE)
+            @RequestParam(
+                    defaultValue = EventTemplateFactory.DEFAULT_PROVIDER_SOURCE
+            )
             @NotBlank
             @Size(max = 255)
             String providerSource,
 
             @Parameter(description = "Version du format")
-            @RequestParam(defaultValue = DEFAULT_FORMAT_VERSION)
+            @RequestParam(
+                    defaultValue = EventTemplateFactory.DEFAULT_FORMAT_VERSION
+            )
             @NotBlank
             @Size(max = 50)
             String formatVersion,
 
             @Parameter(description = "Type du format")
-            @RequestParam(defaultValue = DEFAULT_FORMAT_TYPE)
+            @RequestParam(
+                    defaultValue = EventTemplateFactory.DEFAULT_FORMAT_TYPE
+            )
             @NotBlank
             @Size(max = 50)
             String formatType,
 
             @Parameter(description = "Durée de rétention")
-            @RequestParam(defaultValue = DEFAULT_RETENTION)
+            @RequestParam(
+                    defaultValue = EventTemplateFactory.DEFAULT_RETENTION
+            )
             @NotBlank
             @Size(max = 50)
             String retention,
 
             @Parameter(description = "Localisation du stage 1")
-            @RequestParam(defaultValue = DEFAULT_LOCATION)
+            @RequestParam(
+                    defaultValue = EventTemplateFactory.DEFAULT_LOCATION
+            )
             @NotBlank
             @Size(max = 255)
             String location,
 
             @Parameter(description = "Identifiant du pipeline du stage 1")
-            @RequestParam(defaultValue = DEFAULT_PIPELINE_ID)
+            @RequestParam(
+                    defaultValue = EventTemplateFactory.DEFAULT_PIPELINE_ID
+            )
             @NotBlank
             @Size(max = 255)
             String pipelineId,
 
             @Parameter(description = "Durée de traitement du stage 1 en ms")
-            @RequestParam(defaultValue = DEFAULT_PROCESSING_DURATION_MS)
+            @RequestParam(
+                    defaultValue = EventTemplateFactory
+                            .DEFAULT_PROCESSING_DURATION_MS
+            )
             @Min(0)
             int processingDurationMs,
 
@@ -179,20 +187,17 @@ public class PublishEventController {
             throw new UnknownFlowException(normalizedFlow);
         }
 
-        DatabusEventTemplate eventTemplate = new DatabusEventTemplate(
-                new Owner(
-                        ownerGroup.trim(),
-                        ownerEntity.trim(),
-                        ownerName.trim()
-                ),
-                new Provider(
-                        providerName.trim(),
-                        providerSource.trim()
-                ),
-                new FlowFormat(formatVersion.trim(), formatType.trim()),
-                retention.trim(),
-                location.trim(),
-                pipelineId.trim(),
+        DatabusEventTemplate eventTemplate = EventTemplateFactory.create(
+                ownerGroup,
+                ownerEntity,
+                ownerName,
+                providerName,
+                providerSource,
+                formatVersion,
+                formatType,
+                retention,
+                location,
+                pipelineId,
                 processingDurationMs
         );
         var command = new PublishEventCommand(
