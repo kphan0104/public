@@ -8,7 +8,6 @@ import org.example.testsproducer.application.port.out.EventPublisherPort;
 import org.example.testsproducer.application.port.out.EventSerializerPort;
 import org.example.testsproducer.application.port.out.HostnameProviderPort;
 import org.example.testsproducer.domain.model.DatabusEvent;
-import org.example.testsproducer.domain.model.DatabusEventTemplate;
 
 import java.time.Clock;
 
@@ -20,7 +19,6 @@ public final class PublishEventService implements PublishEventUseCase {
     private final EventSerializerPort eventSerializer;
     private final HostnameProviderPort hostnameProvider;
     private final Clock clock;
-    private final DatabusEventTemplate databusEventTemplate;
     private final int maxMessageBytes;
 
     public PublishEventService(
@@ -28,20 +26,18 @@ public final class PublishEventService implements PublishEventUseCase {
             EventSerializerPort eventSerializer,
             HostnameProviderPort hostnameProvider,
             Clock clock,
-            DatabusEventTemplate databusEventTemplate,
             int maxMessageBytes
     ) {
         this.eventPublisher = eventPublisher;
         this.eventSerializer = eventSerializer;
         this.hostnameProvider = hostnameProvider;
         this.clock = clock;
-        this.databusEventTemplate = databusEventTemplate;
         this.maxMessageBytes = maxMessageBytes;
     }
 
     @Override
     public PublishEventResult publish(PublishEventCommand command) {
-        DatabusEvent event = databusEventTemplate.create(
+        DatabusEvent event = command.eventTemplate().create(
                 command.flowName(),
                 command.originalMessage(),
                 clock.instant(),

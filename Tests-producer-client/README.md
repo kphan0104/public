@@ -16,23 +16,50 @@ racine-projet/
 ├── flux2/
 │   ├── flux2-v1.1.conf
 │   └── originalMessages/
-└── send_original_messages.py
+├── send_original_messages.py
+└── generate_flow_topics.py
 ```
 
-Le script accepte uniquement les noms de la forme `flux-v1.0.conf`, puis
-sélectionne la version numérique la plus élevée. Dans :
+`send_original_messages.py` lit les fichiers sans extension et `.msg` par ordre
+alphabétique, puis envoie leur contenu brut avec le nom du flux. Le serveur
+trouve lui-même le topic et applique les autres valeurs par défaut.
+
+Les fichiers peuvent contenir n'importe quel message texte : leur contenu est
+envoyé tel quel dans le champ `originalMessage`. Les fichiers cachés et les
+autres extensions sont ignorés.
+
+## Génération de flow-topics.yml
+
+`generate_flow_topics.py` accepte uniquement les configurations de la forme
+`flux-v1.0.conf`, sélectionne la version numérique la plus élevée et extrait le
+topic par défaut de :
 
 ```text
 topics => "${KAFKA_TOPIC:integration.events}"
 ```
 
-il utilise toujours `integration.events`, sans lire `KAFKA_TOPIC` dans
+Le script utilise toujours `integration.events`, sans lire `KAFKA_TOPIC` dans
 l'environnement.
 
-Les fichiers sans extension et `.msg` sont traités par ordre alphabétique. Ils
-peuvent contenir n'importe quel message texte : leur contenu est envoyé tel
-quel dans le champ `originalMessage`. Les fichiers cachés et les autres
-extensions sont ignorés.
+Depuis le répertoire racine qui contient les dossiers de flux :
+
+```bash
+python3 generate_flow_topics.py
+```
+
+Il génère un fichier complet `flow-topics.yml` :
+
+```yaml
+tests-producer:
+  flows:
+    topics:
+      flux1: integration.events
+      flux2: another.events
+```
+
+Copier ce fichier à côté de `tests-producer.jar` et de `application.yml`, puis
+redémarrer le serveur. Cette liste alimente directement le sélecteur `flow` de
+Swagger.
 
 ## Exécution
 
@@ -69,8 +96,8 @@ python3 send_original_messages.py flux1
 ```
 
 Le script s'arrête à la première erreur HTTP. Toutes les erreurs locales
-(flux absent, configuration absente ou topic introuvable) sont détectées avant
-le premier envoi.
+(flux absent ou originalMessages absent) sont détectées avant le premier
+envoi.
 
 ## Aide
 

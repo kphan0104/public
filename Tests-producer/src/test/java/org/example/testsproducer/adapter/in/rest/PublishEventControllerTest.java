@@ -3,23 +3,21 @@ package org.example.testsproducer.adapter.in.rest;
 import org.example.testsproducer.application.port.in.PublishEventCommand;
 import org.example.testsproducer.application.port.in.PublishEventResult;
 import org.example.testsproducer.application.port.in.PublishEventUseCase;
+import org.example.testsproducer.config.FlowTopicsProperties;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-        .multipart;
+        .post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
         .jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
@@ -34,8 +32,13 @@ class PublishEventControllerTest {
     @MockitoBean
     private PublishEventUseCase useCase;
 
+    @MockitoBean
+    private FlowTopicsProperties flowTopics;
+
     @Test
-    void publishesAnEvent() throws Exception {
+    void publishesAnEventWithConfiguredDefaults() throws Exception {
+        when(flowTopics.topicFor("payments"))
+                .thenReturn("integration.events");
         when(useCase.publish(any())).thenReturn(
                 new PublishEventResult(
                         "integration.events",
@@ -46,10 +49,10 @@ class PublishEventControllerTest {
                 )
         );
 
-        mockMvc.perform(multipart("/api/v1/events")
-                .file(messageFile("2026-07-28 INFO paiement accepté"))
-                .param("topic", "integration.events")
-                .param("flowName", "payments"))
+        mockMvc.perform(post("/api/v1/events")
+                .queryParam("flow", "payments")
+                .contentType(MediaType.TEXT_PLAIN)
+                .content("2026-08-10 INFO paiement accepté"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("published"))
                 .andExpect(jsonPath("$.topic").value("integration.events"))
@@ -59,37 +62,79 @@ class PublishEventControllerTest {
 
         var command = ArgumentCaptor.forClass(PublishEventCommand.class);
         verify(useCase).publish(command.capture());
+        assertThat(command.getValue().topic())
+                .isEqualTo("integration.events");
+        assertThat(command.getValue().flowName()).isEqualTo("payments");
         assertThat(command.getValue().originalMessage())
-                .isEqualTo("2026-07-28 INFO paiement accepté");
+                .isEqualTo("2026-08-10 INFO paiement accepté");
+        assertThat(command.getValue().eventTemplate().owner().group())
+                .isEqualTo("itgp");
+        assertThat(command.getValue().eventTemplate().provider().source())
+                .isEqualTo("application");
+        assertThat(command.getValue().eventTemplate().format().version())
+                .isEqualTo("1.0.0");
+        assertThat(command.getValue().eventTemplate().retention())
+                .isEqualTo("year");
+        assertThat(command.getValue().eventTemplate().stage1Location())
+                .isEqualTo("MN");
+        assertThat(
+                command.getValue()
+                        .eventTemplate()
+                        .stage1ProcessingDurationMs()
+        ).isEqualTo(100);
+    }
+
+    @Test
+    void acceptsSwaggerParameterOverrides() throws Exception {
+        when(flowTopics.topicFor("payments"))
+                .thenReturn("integration.events");
+        when(useCase.publish(any())).thenReturn(
+                new PublishEventResult(
+                        "integration.events",
+                        0,
+                        1L,
+                        100,
+                        "2026-08-10T10:00:00Z"
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/events")
+                .queryParam("flow", "payments")
+                .queryParam("ownerGroup", "custom-group")
+                .queryParam("formatType", "NDJSON")
+                .queryParam("processingDurationMs", "250")
+                .contentType(MediaType.TEXT_PLAIN)
+                .content("message"))
+                .andExpect(status().isCreated());
+
+        var command = ArgumentCaptor.forClass(PublishEventCommand.class);
+        verify(useCase).publish(command.capture());
+        assertThat(command.getValue().eventTemplate().owner().group())
+                .isEqualTo("custom-group");
+        assertThat(command.getValue().eventTemplate().format().type())
+                .isEqualTo("NDJSON");
+        assertThat(
+                command.getValue()
+                        .eventTemplate()
+                        .stage1ProcessingDurationMs()
+        ).isEqualTo(250);
     }
 
     @Test
     void rejectsARequestWithoutOriginalMessage() throws Exception {
-        mockMvc.perform(multipart("/api/v1/events")
-                .param("topic", "integration.events")
-                .param("flowName", "payments"))
-                .andExpect(status().isBadRequest())
-                .andExpect(
-                        jsonPath("$.errors.originalMessage").isNotEmpty()
-                );
+        mockMvc.perform(post("/api/v1/events")
+                .queryParam("flow", "payments")
+                .contentType(MediaType.TEXT_PLAIN))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void rejectsAnInvalidTopic() throws Exception {
-        mockMvc.perform(multipart("/api/v1/events")
-                .file(messageFile("message log"))
-                .param("topic", "topic interdit")
-                .param("flowName", "payments"))
+    void rejectsAnUnknownFlow() throws Exception {
+        mockMvc.perform(post("/api/v1/events")
+                .queryParam("flow", "unknown")
+                .contentType(MediaType.TEXT_PLAIN)
+                .content("message log"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.topic").isNotEmpty());
-    }
-
-    private static MockMultipartFile messageFile(String content) {
-        return new MockMultipartFile(
-                "originalMessage",
-                "originalMessage.msg",
-                MediaType.TEXT_PLAIN_VALUE,
-                content.getBytes(StandardCharsets.UTF_8)
-        );
+                .andExpect(jsonPath("$.title").value("Flux inconnu"));
     }
 }

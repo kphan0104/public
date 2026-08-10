@@ -7,6 +7,7 @@ Databus attendu et le publie dans Kafka.
 
 - Java 21 ;
 - Spring Boot 4.1.0 ;
+- Springdoc OpenAPI 3.0.3 ;
 - Spring for Apache Kafka 4.1.0 ;
 - client Apache Kafka 4.3.1.
 
@@ -37,14 +38,16 @@ Le domaine et le service applicatif ne dépendent pas de Spring.
 
 ## Configuration externe obligatoire
 
-Aucun `application.yml` n'est embarqué dans le JAR. Au démarrage, l'application
-charge exclusivement le fichier `application.yml` placé dans le même dossier
-que le JAR. Le démarrage échoue si ce fichier est absent.
+Aucun fichier de configuration n'est embarqué dans le JAR. Au démarrage,
+l'application charge exclusivement `application.yml` et `flow-topics.yml`
+placés dans le même dossier que le JAR. Le démarrage échoue si l'un des deux
+fichiers est absent ou si aucun flux n'est configuré.
 
 En développement avec Maven, le fichier doit être placé à la racine du projet :
 
 ```bash
 cp application.yml.example application.yml
+cp flow-topics.yml.example flow-topics.yml
 chmod 600 application.yml
 ```
 
@@ -54,12 +57,36 @@ En déploiement, placer les deux fichiers côte à côte :
 /opt/tests-producer/
 ├── tests-producer.jar
 ├── application.yml
+├── flow-topics.yml
 ├── kafka-client-keystore.jks
 └── kafka-client-truststore.jks
 ```
 
-Une localisation différente peut être fournie explicitement avec
-`-Dspring.config.location=file:/chemin/application.yml`.
+Une localisation différente peut être fournie explicitement avec les deux
+fichiers :
+
+```bash
+java \
+  -Dspring.config.location=file:/chemin/application.yml,file:/chemin/flow-topics.yml \
+  -jar tests-producer.jar
+```
+
+### Association des flux aux topics
+
+Le topic n'est jamais fourni par l'appelant. Il est déterminé à partir du flux
+sélectionné et de `flow-topics.yml` :
+
+```yaml
+tests-producer:
+  flows:
+    topics:
+      payments: integration.events
+      orders: orders.events
+```
+
+Les flux sont triés et affichés sous forme de liste déroulante dans Swagger.
+Après une modification de ce fichier, redémarrer l'application pour actualiser
+la liste.
 
 ### Kafka SSL avec les JKS
 
@@ -100,8 +127,8 @@ spring:
         username="user" password="password";
 ```
 
-Le fichier réel `application.yml` et les fichiers de certificats sont ignorés
-par Git.
+Les fichiers réels `application.yml`, `flow-topics.yml` et les certificats sont
+ignorés par Git.
 
 ### Port HTTP
 
@@ -148,6 +175,7 @@ En développement :
 
 ```bash
 cp application.yml.example application.yml
+cp flow-topics.yml.example flow-topics.yml
 ./mvnw spring-boot:run
 ```
 
@@ -158,39 +186,68 @@ En déploiement :
 mkdir -p deployment
 cp target/tests-producer-0.1.0-SNAPSHOT.jar deployment/tests-producer.jar
 cp application.yml.example deployment/application.yml
-# Modifier deployment/application.yml avec les vraies valeurs.
+cp flow-topics.yml.example deployment/flow-topics.yml
+# Modifier les deux fichiers YAML avec les vraies valeurs.
 java -jar deployment/tests-producer.jar
 ```
 
 L'API écoute par défaut sur le port `8080`. Le health check est disponible sur
 `GET /actuator/health`.
 
+## Swagger UI
+
+L'interface graphique permet de choisir un flux, de modifier les valeurs par
+défaut et de saisir directement l'`originalMessage` dans une zone de texte :
+
+```text
+http://nom-machine:8080/swagger-ui.html
+```
+
+Avec un port configuré à `3000` :
+
+```text
+http://nom-machine:3000/swagger-ui.html
+```
+
+La description OpenAPI JSON est disponible sur :
+
+```text
+http://nom-machine:8080/v3/api-docs
+```
+
 ## API
 
 ### `POST /api/v1/events`
 
-L'endpoint attend une requête `multipart/form-data` avec trois parties
-obligatoires :
+L'endpoint attend :
 
-- `topic` : nom du topic Kafka ;
-- `flowName` : nom du flux ;
-- `originalMessage` : fichier contenant le message texte à publier.
+- le paramètre obligatoire `flow`, choisi parmi les flux de
+  `flow-topics.yml` ;
+- un corps `text/plain` obligatoire contenant l'`originalMessage` ;
+- des paramètres optionnels préremplis dans Swagger : `ownerGroup`,
+  `ownerEntity`, `ownerName`, `providerName`, `providerSource`,
+  `formatVersion`, `formatType`, `retention`, `location`, `pipelineId` et
+  `processingDurationMs`.
+
+Les valeurs affichées par défaut sont respectivement `itgp`, `itgp`, `itgp`,
+`itgp`, `application`, `1.0.0`, `JSON`, `year`, `MN`, `integrations_tests` et
+`100`.
+
+Le topic est trouvé automatiquement à partir de `flow`.
 
 Exemple :
 
 ```bash
 curl --fail-with-body \
   --request POST \
-  --form 'topic=integration.events' \
-  --form 'flowName=payments' \
-  --form 'originalMessage=@./originalMessage.msg;type=text/plain' \
-  http://localhost:8080/api/v1/events
+  --header 'Content-Type: text/plain; charset=utf-8' \
+  --data-binary '@./originalMessage.msg' \
+  'http://localhost:8080/api/v1/events?flow=payments'
 ```
 
-Il ne faut pas ajouter manuellement le header `Content-Type` de la requête :
-`curl` génère le type multipart et sa boundary. Le contenu texte du fichier
-devient la valeur du champ `originalMessage` dans le message Kafka, sans être
-interprété comme du JSON.
+Le contenu texte devient la valeur du champ `originalMessage` dans le message
+Kafka, sans être interprété comme du JSON. `timestamp`, `host`, `eventSize` et
+`lastStage` restent calculés automatiquement par le serveur.
 
 Réponse après acquittement par Kafka :
 

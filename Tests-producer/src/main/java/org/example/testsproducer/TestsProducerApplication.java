@@ -23,9 +23,10 @@ public class TestsProducerApplication {
 
         Path applicationDirectory = applicationDirectory();
         Path configuration = applicationDirectory.resolve("application.yml");
+        Path flowTopics = applicationDirectory.resolve("flow-topics.yml");
         System.setProperty(
                 "spring.config.location",
-                configuration.toUri().toString()
+                configuration.toUri() + "," + flowTopics.toUri()
         );
     }
 

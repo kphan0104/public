@@ -1,78 +1,209 @@
 package org.example.testsproducer.adapter.in.rest;
 
-import org.example.testsproducer.application.port.in.PublishEventCommand;
-import org.example.testsproducer.application.port.in.PublishEventUseCase;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import org.example.testsproducer.application.port.in.PublishEventCommand;
+import org.example.testsproducer.application.port.in.PublishEventUseCase;
+import org.example.testsproducer.config.FlowTopicsProperties;
+import org.example.testsproducer.domain.model.DatabusEventTemplate;
+import org.example.testsproducer.domain.model.FlowFormat;
+import org.example.testsproducer.domain.model.Owner;
+import org.example.testsproducer.domain.model.Provider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/v1/events")
 public class PublishEventController {
 
-    private final PublishEventUseCase publishEventUseCase;
+    static final String DEFAULT_OWNER_GROUP = "itgp";
+    static final String DEFAULT_OWNER_ENTITY = "itgp";
+    static final String DEFAULT_OWNER_NAME = "itgp";
+    static final String DEFAULT_PROVIDER_NAME = "itgp";
+    static final String DEFAULT_PROVIDER_SOURCE = "application";
+    static final String DEFAULT_FORMAT_VERSION = "1.0.0";
+    static final String DEFAULT_FORMAT_TYPE = "JSON";
+    static final String DEFAULT_RETENTION = "year";
+    static final String DEFAULT_LOCATION = "MN";
+    static final String DEFAULT_PIPELINE_ID = "integrations_tests";
+    static final String DEFAULT_PROCESSING_DURATION_MS = "100";
 
-    public PublishEventController(PublishEventUseCase publishEventUseCase) {
+    private final PublishEventUseCase publishEventUseCase;
+    private final FlowTopicsProperties flowTopics;
+
+    public PublishEventController(
+            PublishEventUseCase publishEventUseCase,
+            FlowTopicsProperties flowTopics
+    ) {
         this.publishEventUseCase = publishEventUseCase;
+        this.flowTopics = flowTopics;
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "Publier un originalMessage dans Kafka",
+            description = "Le topic Kafka est déterminé automatiquement à "
+                    + "partir du flux sélectionné."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Message publié"),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Requête ou flux invalide",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "413",
+                    description = "Message trop volumineux",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "503",
+                    description = "Kafka indisponible",
+                    content = @Content
+            )
+    })
+    @PostMapping(
+            consumes = MediaType.TEXT_PLAIN_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
     public ResponseEntity<PublishEventResponse> publish(
-            @RequestParam(required = false)
-            @NotBlank
-            @Size(max = 249)
-            @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")
-            String topic,
-
-            @RequestParam(required = false)
+            @Parameter(
+                    description = "Flux Databus. Le topic associé est "
+                            + "déterminé par flow-topics.yml.",
+                    required = true
+            )
+            @RequestParam
             @NotBlank
             @Size(max = 255)
-            String flowName,
+            @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")
+            String flow,
 
-            @RequestPart(required = false)
-            @NotNull
-            MultipartFile originalMessage
+            @Parameter(description = "Groupe propriétaire")
+            @RequestParam(defaultValue = DEFAULT_OWNER_GROUP)
+            @NotBlank
+            @Size(max = 255)
+            String ownerGroup,
+
+            @Parameter(description = "Entité propriétaire")
+            @RequestParam(defaultValue = DEFAULT_OWNER_ENTITY)
+            @NotBlank
+            @Size(max = 255)
+            String ownerEntity,
+
+            @Parameter(description = "Nom du propriétaire")
+            @RequestParam(defaultValue = DEFAULT_OWNER_NAME)
+            @NotBlank
+            @Size(max = 255)
+            String ownerName,
+
+            @Parameter(description = "Nom du fournisseur")
+            @RequestParam(defaultValue = DEFAULT_PROVIDER_NAME)
+            @NotBlank
+            @Size(max = 255)
+            String providerName,
+
+            @Parameter(description = "Source du fournisseur")
+            @RequestParam(defaultValue = DEFAULT_PROVIDER_SOURCE)
+            @NotBlank
+            @Size(max = 255)
+            String providerSource,
+
+            @Parameter(description = "Version du format")
+            @RequestParam(defaultValue = DEFAULT_FORMAT_VERSION)
+            @NotBlank
+            @Size(max = 50)
+            String formatVersion,
+
+            @Parameter(description = "Type du format")
+            @RequestParam(defaultValue = DEFAULT_FORMAT_TYPE)
+            @NotBlank
+            @Size(max = 50)
+            String formatType,
+
+            @Parameter(description = "Durée de rétention")
+            @RequestParam(defaultValue = DEFAULT_RETENTION)
+            @NotBlank
+            @Size(max = 50)
+            String retention,
+
+            @Parameter(description = "Localisation du stage 1")
+            @RequestParam(defaultValue = DEFAULT_LOCATION)
+            @NotBlank
+            @Size(max = 255)
+            String location,
+
+            @Parameter(description = "Identifiant du pipeline du stage 1")
+            @RequestParam(defaultValue = DEFAULT_PIPELINE_ID)
+            @NotBlank
+            @Size(max = 255)
+            String pipelineId,
+
+            @Parameter(description = "Durée de traitement du stage 1 en ms")
+            @RequestParam(defaultValue = DEFAULT_PROCESSING_DURATION_MS)
+            @Min(0)
+            int processingDurationMs,
+
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Contenu texte de l'originalMessage",
+                    required = true,
+                    content = @Content(
+                            mediaType = MediaType.TEXT_PLAIN_VALUE,
+                            schema = @Schema(type = "string"),
+                            examples = @ExampleObject(
+                                    value = "2026-08-10 INFO Message de test"
+                            )
+                    )
+            )
+            @RequestBody
+            @NotBlank
+            String originalMessage
     ) {
+        String normalizedFlow = flow.trim();
+        String topic = flowTopics.topicFor(normalizedFlow);
+        if (topic == null) {
+            throw new UnknownFlowException(normalizedFlow);
+        }
+
+        DatabusEventTemplate eventTemplate = new DatabusEventTemplate(
+                new Owner(
+                        ownerGroup.trim(),
+                        ownerEntity.trim(),
+                        ownerName.trim()
+                ),
+                new Provider(
+                        providerName.trim(),
+                        providerSource.trim()
+                ),
+                new FlowFormat(formatVersion.trim(), formatType.trim()),
+                retention.trim(),
+                location.trim(),
+                pipelineId.trim(),
+                processingDurationMs
+        );
         var command = new PublishEventCommand(
-                topic.trim(),
-                flowName.trim(),
-                readOriginalMessage(originalMessage)
+                topic,
+                normalizedFlow,
+                originalMessage,
+                eventTemplate
         );
         var result = publishEventUseCase.publish(command);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(PublishEventResponse.from(result));
-    }
-
-    private String readOriginalMessage(MultipartFile originalMessage) {
-        if (originalMessage.isEmpty()) {
-            throw new InvalidOriginalMessageException(
-                    "Le fichier originalMessage est vide"
-            );
-        }
-        try {
-            return new String(
-                    originalMessage.getBytes(),
-                    StandardCharsets.UTF_8
-            );
-        } catch (IOException exception) {
-            throw new InvalidOriginalMessageException(
-                    "Impossible de lire le fichier originalMessage",
-                    exception
-            );
-        }
     }
 }

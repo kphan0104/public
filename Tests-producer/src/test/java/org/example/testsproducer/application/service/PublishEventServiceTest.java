@@ -41,7 +41,6 @@ class PublishEventServiceTest {
                         Instant.parse("2026-07-24T10:30:15.123Z"),
                         ZoneOffset.UTC
                 ),
-                configuredTemplate(),
                 1_000_000
         );
 
@@ -49,7 +48,8 @@ class PublishEventServiceTest {
                 new PublishEventCommand(
                         "integration.events",
                         "payments",
-                        "2026-07-28 INFO paiement accepté amount=42"
+                        "2026-07-28 INFO paiement accepté amount=42",
+                        configuredTemplate()
                 )
         );
 
@@ -107,7 +107,6 @@ class PublishEventServiceTest {
                 new JacksonEventSerializerAdapter(objectMapper),
                 () -> "host",
                 Clock.systemUTC(),
-                configuredTemplate(),
                 10
         );
 
@@ -115,7 +114,8 @@ class PublishEventServiceTest {
                 new PublishEventCommand(
                         "events",
                         "payments",
-                        "message trop volumineux"
+                        "message trop volumineux",
+                        configuredTemplate()
                 )
         )).isInstanceOf(MessageTooLargeException.class);
     }

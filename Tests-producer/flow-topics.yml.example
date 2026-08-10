@@ -1,0 +1,5 @@
+tests-producer:
+  flows:
+    topics:
+      payments: integration.events
+      orders: orders.events

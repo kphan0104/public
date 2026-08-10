@@ -13,7 +13,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.net.URI;
 import java.util.LinkedHashMap;
@@ -91,24 +90,11 @@ public class ApiExceptionHandler {
         );
     }
 
-    @ExceptionHandler(MaxUploadSizeExceededException.class)
-    ProblemDetail handleUploadTooLarge(
-            MaxUploadSizeExceededException exception
-    ) {
-        return problem(
-                HttpStatus.PAYLOAD_TOO_LARGE,
-                "Fichier trop volumineux",
-                "Le fichier originalMessage dépasse la taille autorisée"
-        );
-    }
-
-    @ExceptionHandler(InvalidOriginalMessageException.class)
-    ProblemDetail handleInvalidOriginalMessage(
-            InvalidOriginalMessageException exception
-    ) {
+    @ExceptionHandler(UnknownFlowException.class)
+    ProblemDetail handleUnknownFlow(UnknownFlowException exception) {
         return problem(
                 HttpStatus.BAD_REQUEST,
-                "originalMessage invalide",
+                "Flux inconnu",
                 exception.getMessage()
         );
     }

@@ -6,6 +6,7 @@ target/
 
 # Configuration externe, secrets et logs locaux
 /application.yml
+/flow-topics.yml
 *.jks
 *.p12
 *.pem
