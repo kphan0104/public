@@ -68,8 +68,7 @@ public class PublishEventController {
     )
     public ResponseEntity<PublishEventResponse> publish(
             @Parameter(
-                    description = "Flux Databus. Le topic associé est "
-                            + "déterminé par flow-topics.yml.",
+                    description = "databus.flow.name",
                     required = true
             )
             @RequestParam
@@ -78,7 +77,7 @@ public class PublishEventController {
             @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")
             String flow,
 
-            @Parameter(description = "Groupe propriétaire")
+            @Parameter(description = "databus.flow.owner.group")
             @RequestParam(
                     defaultValue = EventTemplateFactory.DEFAULT_OWNER_GROUP
             )
@@ -86,7 +85,7 @@ public class PublishEventController {
             @Size(max = 255)
             String ownerGroup,
 
-            @Parameter(description = "Entité propriétaire")
+            @Parameter(description = "databus.flow.owner.entity")
             @RequestParam(
                     defaultValue = EventTemplateFactory.DEFAULT_OWNER_ENTITY
             )
@@ -94,7 +93,7 @@ public class PublishEventController {
             @Size(max = 255)
             String ownerEntity,
 
-            @Parameter(description = "Nom du propriétaire")
+            @Parameter(description = "databus.flow.owner.name")
             @RequestParam(
                     defaultValue = EventTemplateFactory.DEFAULT_OWNER_NAME
             )
@@ -102,7 +101,7 @@ public class PublishEventController {
             @Size(max = 255)
             String ownerName,
 
-            @Parameter(description = "Nom du fournisseur")
+            @Parameter(description = "databus.flow.provider.name")
             @RequestParam(
                     defaultValue = EventTemplateFactory.DEFAULT_PROVIDER_NAME
             )
@@ -110,7 +109,7 @@ public class PublishEventController {
             @Size(max = 255)
             String providerName,
 
-            @Parameter(description = "Source du fournisseur")
+            @Parameter(description = "databus.flow.provider.source")
             @RequestParam(
                     defaultValue = EventTemplateFactory.DEFAULT_PROVIDER_SOURCE
             )
@@ -118,7 +117,7 @@ public class PublishEventController {
             @Size(max = 255)
             String providerSource,
 
-            @Parameter(description = "Version du format")
+            @Parameter(description = "databus.flow.format.version")
             @RequestParam(
                     defaultValue = EventTemplateFactory.DEFAULT_FORMAT_VERSION
             )
@@ -126,7 +125,7 @@ public class PublishEventController {
             @Size(max = 50)
             String formatVersion,
 
-            @Parameter(description = "Type du format")
+            @Parameter(description = "databus.flow.format.type")
             @RequestParam(
                     defaultValue = EventTemplateFactory.DEFAULT_FORMAT_TYPE
             )
@@ -134,7 +133,7 @@ public class PublishEventController {
             @Size(max = 50)
             String formatType,
 
-            @Parameter(description = "Durée de rétention")
+            @Parameter(description = "databus.flow.retention")
             @RequestParam(
                     defaultValue = EventTemplateFactory.DEFAULT_RETENTION
             )
@@ -142,7 +141,9 @@ public class PublishEventController {
             @Size(max = 50)
             String retention,
 
-            @Parameter(description = "Localisation du stage 1")
+            @Parameter(
+                    description = "databus.event.lineage.stage1.location"
+            )
             @RequestParam(
                     defaultValue = EventTemplateFactory.DEFAULT_LOCATION
             )
@@ -150,7 +151,9 @@ public class PublishEventController {
             @Size(max = 255)
             String location,
 
-            @Parameter(description = "Identifiant du pipeline du stage 1")
+            @Parameter(
+                    description = "databus.event.lineage.stage1.pipeline_id"
+            )
             @RequestParam(
                     defaultValue = EventTemplateFactory.DEFAULT_PIPELINE_ID
             )
@@ -158,7 +161,10 @@ public class PublishEventController {
             @Size(max = 255)
             String pipelineId,
 
-            @Parameter(description = "Durée de traitement du stage 1 en ms")
+            @Parameter(
+                    description = "databus.event.lineage.stage1."
+                            + "processing_duration_ms"
+            )
             @RequestParam(
                     defaultValue = EventTemplateFactory
                             .DEFAULT_PROCESSING_DURATION_MS
@@ -167,7 +173,7 @@ public class PublishEventController {
             int processingDurationMs,
 
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Contenu texte de l'originalMessage",
+                    description = "originalMessage",
                     required = true,
                     content = @Content(
                             mediaType = MediaType.TEXT_PLAIN_VALUE,
