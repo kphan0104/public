@@ -5,7 +5,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 
 OUTPUT_FILE_NAME = "flow-topics.yml"
@@ -53,7 +53,9 @@ def find_flow_directories(root_directory: Path):
     return flows
 
 
-def find_latest_configuration(flow_directory: Path) -> Tuple[Path, str]:
+def find_latest_configuration(
+    flow_directory: Path,
+) -> Optional[Tuple[Path, str]]:
     pattern = re.compile(
         r"^{}-v(?P<version>\d+(?:\.\d+)*)\.conf$".format(
             re.escape(flow_directory.name)
@@ -73,12 +75,7 @@ def find_latest_configuration(flow_directory: Path) -> Tuple[Path, str]:
         )
 
     if not versioned_files:
-        raise GenerationError(
-            "Aucun fichier '{}-vX.Y.conf' trouvé dans '{}'".format(
-                flow_directory.name,
-                flow_directory,
-            )
-        )
+        return None
 
     latest_version = max(item[0] for item in versioned_files)
     latest_files = [
@@ -135,7 +132,16 @@ def extract_default_topic(configuration: Path) -> str:
 def collect_flow_topics(root_directory: Path) -> Dict[str, str]:
     flow_topics = {}
     for flow_directory in find_flow_directories(root_directory):
-        configuration, version = find_latest_configuration(flow_directory)
+        latest_configuration = find_latest_configuration(flow_directory)
+        if latest_configuration is None:
+            print(
+                "{} ignoré (aucun fichier {}-vX.Y.conf)".format(
+                    flow_directory.name,
+                    flow_directory.name,
+                )
+            )
+            continue
+        configuration, version = latest_configuration
         topic = extract_default_topic(configuration)
         flow_topics[flow_directory.name] = topic
         print(
@@ -145,6 +151,10 @@ def collect_flow_topics(root_directory: Path) -> Dict[str, str]:
                 configuration.name,
                 version,
             )
+        )
+    if not flow_topics:
+        raise GenerationError(
+            "Aucune configuration de flux versionnée n'a été trouvée"
         )
     return flow_topics
 
