@@ -63,6 +63,9 @@ tests-producer:
       flux2: another.events
 ```
 
+Le même bloc YAML est affiché seul dans le terminal, sans message autour. Il
+peut donc être copié directement dans `flow-topics.yml`.
+
 Copier ce fichier à côté de `tests-producer.jar` et de `application.yml`, puis
 redémarrer le serveur. Cette liste alimente uniquement le sélecteur `flow` de
 Swagger ; elle n'est pas utilisée par `send_original_messages.py`.

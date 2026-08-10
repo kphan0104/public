@@ -134,24 +134,10 @@ def collect_flow_topics(root_directory: Path) -> Dict[str, str]:
     for flow_directory in find_flow_directories(root_directory):
         latest_configuration = find_latest_configuration(flow_directory)
         if latest_configuration is None:
-            print(
-                "{} ignoré (aucun fichier {}-vX.Y.conf)".format(
-                    flow_directory.name,
-                    flow_directory.name,
-                )
-            )
             continue
-        configuration, version = latest_configuration
+        configuration, _ = latest_configuration
         topic = extract_default_topic(configuration)
         flow_topics[flow_directory.name] = topic
-        print(
-            "{} -> {} ({} v{})".format(
-                flow_directory.name,
-                topic,
-                configuration.name,
-                version,
-            )
-        )
     if not flow_topics:
         raise GenerationError(
             "Aucune configuration de flux versionnée n'a été trouvée"
@@ -180,14 +166,13 @@ def main() -> int:
     try:
         flow_topics = collect_flow_topics(root_directory)
         output_file = root_directory / OUTPUT_FILE_NAME
-        output_file.write_text(render_yaml(flow_topics), encoding="utf-8")
+        yaml_content = render_yaml(flow_topics)
+        output_file.write_text(yaml_content, encoding="utf-8")
     except (GenerationError, OSError) as exception:
         print("ERREUR: {}".format(exception), file=sys.stderr)
         return 1
 
-    print(
-        "{} flux écrits dans '{}'".format(len(flow_topics), output_file)
-    )
+    print(yaml_content, end="")
     return 0
 
 
