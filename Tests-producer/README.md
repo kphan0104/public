@@ -197,8 +197,9 @@ L'API écoute par défaut sur le port `8080`. Le health check est disponible sur
 
 ## Swagger UI
 
-L'interface graphique permet de choisir un flux, de modifier les valeurs par
-défaut et de saisir directement l'`originalMessage` dans une zone de texte :
+L'interface graphique permet de choisir un flux et de saisir directement
+l'`originalMessage` dans une zone de texte. Un second endpoint permet de
+modifier toutes les valeurs Databus :
 
 ```text
 http://nom-machine:8080/swagger-ui.html
@@ -224,17 +225,10 @@ L'endpoint attend :
 
 - le paramètre obligatoire `flow`, choisi parmi les flux de
   `flow-topics.yml` ;
-- un corps `text/plain` obligatoire contenant l'`originalMessage` ;
-- des paramètres optionnels préremplis dans Swagger : `ownerGroup`,
-  `ownerEntity`, `ownerName`, `providerName`, `providerSource`,
-  `formatVersion`, `formatType`, `retention`, `location`, `pipelineId` et
-  `processingDurationMs`.
+- un corps `text/plain` obligatoire contenant l'`originalMessage`.
 
-Les valeurs affichées par défaut sont respectivement `itgp`, `itgp`, `itgp`,
-`itgp`, `application`, `1.0.0`, `JSON`, `year`, `MN`, `integrations_tests` et
-`100`.
-
-Le topic est trouvé automatiquement à partir de `flow`.
+Toutes les autres valeurs Databus utilisent automatiquement leurs valeurs par
+défaut. Le topic est trouvé automatiquement à partir de `flow`.
 
 Exemple :
 
@@ -244,6 +238,28 @@ curl --fail-with-body \
   --header 'Content-Type: text/plain; charset=utf-8' \
   --data-binary '@./originalMessage.msg' \
   'http://localhost:8080/api/v1/events?flow=payments'
+```
+
+### `POST /api/v1/events/custom`
+
+Cet endpoint reçoit le même `flow` et le même corps `text/plain`, ainsi que
+les paramètres optionnels préremplis dans Swagger : `ownerGroup`,
+`ownerEntity`, `ownerName`, `providerName`, `providerSource`, `formatVersion`,
+`formatType`, `retention`, `location`, `pipelineId` et
+`processingDurationMs`.
+
+Les valeurs affichées par défaut sont respectivement `itgp`, `itgp`, `itgp`,
+`itgp`, `application`, `1.0.0`, `JSON`, `year`, `MN`, `integrations_tests` et
+`100`.
+
+Exemple :
+
+```bash
+curl --fail-with-body \
+  --request POST \
+  --header 'Content-Type: text/plain; charset=utf-8' \
+  --data-binary '@./originalMessage.msg' \
+  'http://localhost:8080/api/v1/events/custom?flow=payments'
 ```
 
 Le contenu texte devient la valeur du champ `originalMessage` dans le message

@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Configuration(proxyBeanMethods = false)
 public class OpenApiConfiguration {
@@ -27,14 +28,15 @@ public class OpenApiConfiguration {
             FlowTopicsProperties flowTopics
     ) {
         return openApi -> {
-            var pathItem = openApi.getPaths().get("/api/v1/events");
-            if (pathItem == null || pathItem.getPost() == null) {
-                return;
-            }
-            pathItem.getPost().getParameters().stream()
+            List.of("/api/v1/events", "/api/v1/events/custom")
+                    .stream()
+                    .map(openApi.getPaths()::get)
+                    .filter(pathItem -> pathItem != null
+                            && pathItem.getPost() != null)
+                    .map(pathItem -> pathItem.getPost().getParameters())
+                    .flatMap(List::stream)
                     .filter(parameter -> "flow".equals(parameter.getName()))
-                    .findFirst()
-                    .ifPresent(parameter -> parameter.getSchema().setEnum(
+                    .forEach(parameter -> parameter.getSchema().setEnum(
                             new ArrayList<>(flowTopics.topics().keySet())
                     ));
         };

@@ -40,7 +40,7 @@ public class PublishEventController {
     }
 
     @Operation(
-            summary = "Publier un originalMessage dans Kafka",
+            summary = "Publier avec les valeurs Databus par défaut",
             description = "Le topic Kafka est déterminé automatiquement à "
                     + "partir du flux sélectionné."
     )
@@ -67,6 +67,67 @@ public class PublishEventController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<PublishEventResponse> publish(
+            @Parameter(
+                    description = "databus.flow.name",
+                    required = true
+            )
+            @RequestParam
+            @NotBlank
+            @Size(max = 255)
+            @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")
+            String flow,
+
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "originalMessage",
+                    required = true,
+                    content = @Content(
+                            mediaType = MediaType.TEXT_PLAIN_VALUE,
+                            schema = @Schema(type = "string"),
+                            examples = @ExampleObject(
+                                    value = "2026-08-10 INFO Message de test"
+                            )
+                    )
+            )
+            @RequestBody
+            @NotBlank
+            String originalMessage
+    ) {
+        return publishEvent(
+                flow,
+                originalMessage,
+                EventTemplateFactory.defaults()
+        );
+    }
+
+    @Operation(
+            summary = "Publier avec des valeurs Databus personnalisées",
+            description = "Le topic Kafka est déterminé automatiquement à "
+                    + "partir du flux sélectionné."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Message publié"),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Requête ou flux invalide",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "413",
+                    description = "Message trop volumineux",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "503",
+                    description = "Kafka indisponible",
+                    content = @Content
+            )
+    })
+    @PostMapping(
+            path = "/custom",
+            consumes = MediaType.TEXT_PLAIN_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<PublishEventResponse> publishCustom(
             @Parameter(
                     description = "databus.flow.name",
                     required = true
@@ -187,12 +248,6 @@ public class PublishEventController {
             @NotBlank
             String originalMessage
     ) {
-        String normalizedFlow = flow.trim();
-        String topic = flowTopics.topicFor(normalizedFlow);
-        if (topic == null) {
-            throw new UnknownFlowException(normalizedFlow);
-        }
-
         DatabusEventTemplate eventTemplate = EventTemplateFactory.create(
                 ownerGroup,
                 ownerEntity,
@@ -206,6 +261,20 @@ public class PublishEventController {
                 pipelineId,
                 processingDurationMs
         );
+        return publishEvent(flow, originalMessage, eventTemplate);
+    }
+
+    private ResponseEntity<PublishEventResponse> publishEvent(
+            String flow,
+            String originalMessage,
+            DatabusEventTemplate eventTemplate
+    ) {
+        String normalizedFlow = flow.trim();
+        String topic = flowTopics.topicFor(normalizedFlow);
+        if (topic == null) {
+            throw new UnknownFlowException(normalizedFlow);
+        }
+
         var command = new PublishEventCommand(
                 topic,
                 normalizedFlow,

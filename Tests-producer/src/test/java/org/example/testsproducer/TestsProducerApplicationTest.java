@@ -44,23 +44,31 @@ class TestsProducerApplicationTest {
                 .getResponse()
                 .getContentAsByteArray();
         var paths = objectMapper.readTree(response).get("paths");
-        var operation = paths
+        var defaultOperation = paths
                 .get("/api/v1/events")
                 .get("post");
+        var customOperation = paths
+                .get("/api/v1/events/custom")
+                .get("post");
         assertThat(paths.get("/api/v1/internal/events")).isNull();
-        var parameters = operation.get("parameters");
+        var defaultParameters = defaultOperation.get("parameters");
+        var customParameters = customOperation.get("parameters");
 
-        var flow = findParameter(parameters, "flow");
-        assertThat(flow.get("required").asBoolean()).isTrue();
-        assertThat(flow.get("schema").get("enum").get(0).asText())
+        var defaultFlow = findParameter(defaultParameters, "flow");
+        assertThat(defaultFlow.get("required").asBoolean()).isTrue();
+        assertThat(defaultFlow.get("schema").get("enum").get(0).asText())
                 .isEqualTo("payments");
+        assertThat(defaultParameters.size()).isEqualTo(1);
 
-        var ownerGroup = findParameter(parameters, "ownerGroup");
+        var customFlow = findParameter(customParameters, "flow");
+        assertThat(customFlow.get("schema").get("enum").get(0).asText())
+                .isEqualTo("payments");
+        var ownerGroup = findParameter(customParameters, "ownerGroup");
         assertThat(ownerGroup.get("schema").get("default").asText())
                 .isEqualTo("itgp");
 
         assertThat(
-                operation.get("requestBody")
+                defaultOperation.get("requestBody")
                         .get("content")
                         .get("text/plain")
                         .get("schema")

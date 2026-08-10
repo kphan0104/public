@@ -101,7 +101,7 @@ class PublishEventControllerTest {
                 )
         );
 
-        mockMvc.perform(post("/api/v1/events")
+        mockMvc.perform(post("/api/v1/events/custom")
                 .queryParam("flow", "payments")
                 .queryParam("ownerGroup", "custom-group")
                 .queryParam("formatType", "NDJSON")
