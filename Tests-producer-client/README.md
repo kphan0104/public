@@ -40,6 +40,10 @@ topic par défaut de :
 topics => "${KAFKA_TOPIC:integration.events}"
 ```
 
+Il parcourt tous les dossiers non cachés placés directement dans le répertoire
+racine, qu'ils contiennent ou non un dossier `originalMessages`. Chaque dossier
+doit contenir au moins une configuration portant son nom.
+
 Le script utilise toujours `integration.events`, sans lire `KAFKA_TOPIC` dans
 l'environnement.
 

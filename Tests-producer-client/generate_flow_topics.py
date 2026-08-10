@@ -43,14 +43,12 @@ def find_flow_directories(root_directory: Path):
             for candidate in root_directory.iterdir()
             if candidate.is_dir()
             and not candidate.name.startswith(".")
-            and (candidate / "originalMessages").is_dir()
         ),
         key=lambda path: path.name.casefold(),
     )
     if not flows:
         raise GenerationError(
-            "Aucun dossier de flux contenant originalMessages trouvé dans "
-            "'{}'".format(root_directory)
+            "Aucun dossier de flux trouvé dans '{}'".format(root_directory)
         )
     return flows
 
