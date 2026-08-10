@@ -5,7 +5,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 OUTPUT_FILE_NAME = "flow-topics.yml"
@@ -92,7 +92,7 @@ def find_latest_configuration(
     return configuration, raw_version
 
 
-def extract_default_topic(configuration: Path) -> str:
+def extract_default_topics(configuration: Path) -> List[str]:
     try:
         content = configuration.read_text(encoding="utf-8-sig")
     except (OSError, UnicodeError) as exception:
@@ -100,44 +100,55 @@ def extract_default_topic(configuration: Path) -> str:
             "Impossible de lire '{}': {}".format(configuration, exception)
         ) from exception
 
-    topics = {
-        match.group("default_topic").strip()
-        for match in TOPIC_PATTERN.finditer(content)
-    }
+    topics = []
+    for match in TOPIC_PATTERN.finditer(content):
+        topic = match.group("default_topic").strip()
+        if topic not in topics:
+            topics.append(topic)
+
     if not topics:
         raise GenerationError(
             "Aucun topics => \"${{VARIABLE:topic}}\" trouvé dans '{}'".format(
                 configuration
             )
         )
-    if len(topics) > 1:
-        raise GenerationError(
-            "Plusieurs topics différents trouvés dans '{}': {}".format(
-                configuration,
-                ", ".join(sorted(topics)),
-            )
-        )
 
-    topic = topics.pop()
-    if len(topic) > 249 or KAFKA_TOPIC_PATTERN.fullmatch(topic) is None:
-        raise GenerationError(
-            "Le topic '{}' trouvé dans '{}' n'est pas valide".format(
-                topic,
-                configuration,
+    for topic in topics:
+        if len(topic) > 249 or KAFKA_TOPIC_PATTERN.fullmatch(topic) is None:
+            raise GenerationError(
+                "Le topic '{}' trouvé dans '{}' n'est pas valide".format(
+                    topic,
+                    configuration,
+                )
             )
-        )
-    return topic
+    return topics
 
 
 def collect_flow_topics(root_directory: Path) -> Dict[str, str]:
     flow_topics = {}
+
+    def add_flow_topic(flow: str, topic: str) -> None:
+        if flow in flow_topics:
+            raise GenerationError(
+                "La clé de flux '{}' est produite plusieurs fois".format(flow)
+            )
+        flow_topics[flow] = topic
+
     for flow_directory in find_flow_directories(root_directory):
         latest_configuration = find_latest_configuration(flow_directory)
         if latest_configuration is None:
             continue
         configuration, _ = latest_configuration
-        topic = extract_default_topic(configuration)
-        flow_topics[flow_directory.name] = topic
+        topics = extract_default_topics(configuration)
+        if len(topics) == 1:
+            add_flow_topic(flow_directory.name, topics[0])
+            continue
+
+        for index, topic in enumerate(topics, start=1):
+            add_flow_topic(
+                "{}{}".format(flow_directory.name, index),
+                topic,
+            )
     if not flow_topics:
         raise GenerationError(
             "Aucune configuration de flux versionnée n'a été trouvée"
