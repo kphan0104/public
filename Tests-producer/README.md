@@ -114,6 +114,28 @@ restent modifiables avant l'envoi. Après l'ajout ou la modification d'un
 fichier, redémarrer l'application puis recharger Swagger pour récupérer sa
 valeur.
 
+Un fichier `.msg` peut contenir des marqueurs de timestamp. Ils sont remplacés
+uniquement dans le navigateur, au moment où Swagger affiche le message du flux :
+
+```text
+{{NOW}}
+{{NOW|yyyy-MM-dd HH:mm:ss.SSS|Europe/Paris}}
+{{NOW|yyyy-MM-dd'T'HH:mm:ss.SSSXXX|UTC}}
+```
+
+`{{NOW}}` produit un timestamp ISO-8601 en UTC. La forme complète accepte un
+format puis, facultativement, un fuseau horaire ; sans fuseau, `UTC` est
+utilisé. Les éléments de format acceptés sont `yyyy`, `yy`, `MM`, `dd`, `HH`,
+`mm`, `ss`, `SSS`, `X`, `XX`, `XXX` et `Z`. Les textes littéraux peuvent être
+entourés d'apostrophes, comme le `T` dans l'exemple.
+
+Tous les marqueurs d'un message utilisent le même instant. Le résultat est
+visible et reste modifiable dans la zone de texte avant l'envoi. Le timestamp
+correspond donc à l'affichage ou au changement du flux, et non au clic sur
+`Execute`. Le backend ne remplace jamais ces marqueurs : un appel direct avec
+`curl` enverra le texte `{{NOW}}` tel quel. L'endpoint `/raw-events` n'est pas
+concerné.
+
 ### Kafka SSL avec les JKS
 
 Copier le keystore et le truststore JKS dans un emplacement lisible par

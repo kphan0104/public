@@ -122,6 +122,34 @@ class PublishEventControllerTest {
     }
 
     @Test
+    void forwardsTimestampPlaceholdersWithoutResolvingThem() throws Exception {
+        String originalMessage = "{\"timestamp\":"
+                + "\"{{NOW|yyyy-MM-dd'T'HH:mm:ss.SSSXXX|UTC}}\"}";
+        when(flowTopics.topicFor("payments"))
+                .thenReturn("integration.events");
+        when(useCase.publish(any())).thenReturn(
+                new PublishEventResult(
+                        "integration.events",
+                        0,
+                        1L,
+                        100,
+                        "2026-08-10T10:00:00Z"
+                )
+        );
+
+        mockMvc.perform(post("/events")
+                .queryParam("flow", "payments")
+                .contentType(MediaType.TEXT_PLAIN)
+                .content(originalMessage))
+                .andExpect(status().isCreated());
+
+        var command = ArgumentCaptor.forClass(PublishEventCommand.class);
+        verify(useCase).publish(command.capture());
+        assertThat(command.getValue().originalMessage())
+                .isEqualTo(originalMessage);
+    }
+
+    @Test
     void rejectsARequestWithoutOriginalMessage() throws Exception {
         mockMvc.perform(post("/events")
                 .queryParam("flow", "payments")

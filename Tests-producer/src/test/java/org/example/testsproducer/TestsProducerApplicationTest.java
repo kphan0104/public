@@ -61,7 +61,8 @@ class TestsProducerApplicationTest {
                         )
                         .get("payments")
                         .asText()
-        ).isEqualTo("2026-08-24 INFO Paiement accepté\n");
+        ).isEqualTo("{\"timestamp\":\"{{NOW|yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
+                + "|UTC}}\",\"message\":\"Paiement accepté\"}\n");
         var tags = openApi.get("tags");
         assertThat(tags.get(0).get("name").asText())
                 .isEqualTo("originalMessage");
@@ -184,6 +185,8 @@ class TestsProducerApplicationTest {
                 .contains(".swagger-ui .info .link")
                 .contains(".opblock-section-request-body")
                 .contains("x-tests-producer-default-original-messages")
+                .contains("function resolveTimestamps(messageTemplate)")
+                .contains("message = resolveTimestamps(messageTemplate)")
                 .contains("\"docExpansion\" : \"list\"")
                 .contains("\"tryItOutEnabled\" : true");
     }
