@@ -3,23 +3,37 @@ package org.example.testsproducer.config;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.StringSchema;
+import io.swagger.v3.oas.models.tags.Tag;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Configuration(proxyBeanMethods = false)
 public class OpenApiConfiguration {
 
     @Bean
     OpenAPI testsProducerOpenApi() {
-        return new OpenAPI().info(new Info()
-                .title("tests-producer API")
-                .description(
-                        "Publication d'originalMessages de tests dans Kafka"
-                )
-                .version("1.0.0"));
+        return new OpenAPI()
+                .tags(List.of(
+                        new Tag()
+                                .name("Databus events")
+                                .description("Publication de messages avec "
+                                        + "une enveloppe Databus"),
+                        new Tag()
+                                .name("RAW messages")
+                                .description("Publication directe sans "
+                                        + "enveloppe Databus")
+                ))
+                .info(new Info()
+                        .title("tests-producer API")
+                        .description(
+                                "Publication d'originalMessages de tests "
+                                        + "dans Kafka"
+                        )
+                        .version("1.0.0"));
     }
 
     @Bean

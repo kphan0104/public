@@ -43,7 +43,14 @@ class TestsProducerApplicationTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsByteArray();
-        var paths = objectMapper.readTree(response).get("paths");
+        var openApi = objectMapper.readTree(response);
+        var tags = openApi.get("tags");
+        assertThat(tags.get(0).get("name").asText())
+                .isEqualTo("Databus events");
+        assertThat(tags.get(1).get("name").asText())
+                .isEqualTo("RAW messages");
+
+        var paths = openApi.get("paths");
         var defaultOperation = paths
                 .get("/api/v1/events")
                 .get("post");
@@ -52,6 +59,15 @@ class TestsProducerApplicationTest {
                 .get("post");
         assertThat(paths.get("/api/v1/internal/events")).isNull();
         assertThat(paths.get("/api/v1/raw-events").get("post")).isNotNull();
+        assertThat(defaultOperation.get("tags").get(0).asText())
+                .isEqualTo("Databus events");
+        assertThat(
+                paths.get("/api/v1/raw-events")
+                        .get("post")
+                        .get("tags")
+                        .get(0)
+                        .asText()
+        ).isEqualTo("RAW messages");
         var defaultParameters = defaultOperation.get("parameters");
         var customParameters = customOperation.get("parameters");
 
