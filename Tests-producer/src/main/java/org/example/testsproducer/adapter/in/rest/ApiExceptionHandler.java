@@ -3,6 +3,8 @@ package org.example.testsproducer.adapter.in.rest;
 import org.example.testsproducer.adapter.out.json.EventSerializationException;
 import org.example.testsproducer.application.exception.EventPublicationException;
 import org.example.testsproducer.application.exception.MessageTooLargeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,10 @@ import java.util.Map;
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ApiExceptionHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(
+            ApiExceptionHandler.class
+    );
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ProblemDetail handleValidation(MethodArgumentNotValidException exception) {
@@ -101,9 +107,13 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(EventPublicationException.class)
     ProblemDetail handleKafka(EventPublicationException exception) {
+        Throwable kafkaCause = exception.getCause() == null
+                ? exception
+                : exception.getCause();
+        LOGGER.error("Erreur retournée par Kafka", kafkaCause);
         return problem(
                 HttpStatus.SERVICE_UNAVAILABLE,
-                "Kafka indisponible",
+                "Erreur Kafka",
                 exception.getMessage()
         );
     }

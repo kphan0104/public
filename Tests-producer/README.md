@@ -273,7 +273,7 @@ Kafka, sans être interprété comme du JSON. `timestamp`, `host`, `eventSize` e
 Cet endpoint reçoit uniquement :
 
 - `topic` : topic Kafka obligatoire saisi librement ;
-- un corps `application/octet-stream` non vide contenant le message RAW.
+- un corps `text/plain` non vide contenant le message RAW.
 
 Le corps est publié directement comme valeur Kafka, sans enveloppe JSON, sans
 `originalMessage` et sans métadonnées Databus :
@@ -281,7 +281,7 @@ Le corps est publié directement comme valeur Kafka, sans enveloppe JSON, sans
 ```bash
 curl --fail-with-body \
   --request POST \
-  --header 'Content-Type: application/octet-stream' \
+  --header 'Content-Type: text/plain; charset=utf-8' \
   --data-binary '@./raw-message' \
   'http://localhost:8080/api/v1/raw-events?topic=raw.events'
 ```
@@ -289,6 +289,12 @@ curl --fail-with-body \
 Le message RAW conserve exactement les octets reçus et est publié sans clé
 Kafka. La limite `tests-producer.publication.max-message-bytes` s'applique aussi
 à cet endpoint.
+
+En cas d'erreur Kafka, les trois endpoints retournent un statut `503` avec un
+corps `application/problem+json`. Le champ `detail` contient directement le
+message de l'exception retournée par le client Kafka, notamment pour les erreurs
+d'ACL. La cause et sa stack trace complète sont également écrites dans les logs
+du serveur.
 
 Réponse après acquittement par Kafka :
 

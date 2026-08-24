@@ -1,5 +1,6 @@
 package org.example.testsproducer.adapter.in.rest;
 
+import org.example.testsproducer.application.exception.EventPublicationException;
 import org.example.testsproducer.application.port.in.PublishEventCommand;
 import org.example.testsproducer.application.port.in.PublishEventResult;
 import org.example.testsproducer.application.port.in.PublishEventUseCase;
@@ -136,6 +137,28 @@ class PublishEventControllerTest {
                 .content("message log"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Flux inconnu"));
+    }
+
+    @Test
+    void exposesTheExactKafkaErrorMessage() throws Exception {
+        String kafkaMessage = "Not authorized to access topics: "
+                + "[integration.events]";
+        when(flowTopics.topicFor("payments"))
+                .thenReturn("integration.events");
+        when(useCase.publish(any())).thenThrow(
+                new EventPublicationException(
+                        kafkaMessage,
+                        new RuntimeException(kafkaMessage)
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/events")
+                .queryParam("flow", "payments")
+                .contentType(MediaType.TEXT_PLAIN)
+                .content("message"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.title").value("Erreur Kafka"))
+                .andExpect(jsonPath("$.detail").value(kafkaMessage));
     }
 
 }

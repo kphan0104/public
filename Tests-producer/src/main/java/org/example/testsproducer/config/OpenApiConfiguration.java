@@ -17,16 +17,6 @@ public class OpenApiConfiguration {
     @Bean
     OpenAPI testsProducerOpenApi() {
         return new OpenAPI()
-                .tags(List.of(
-                        new Tag()
-                                .name("Databus events")
-                                .description("Publication de messages avec "
-                                        + "une enveloppe Databus"),
-                        new Tag()
-                                .name("RAW messages")
-                                .description("Publication directe sans "
-                                        + "enveloppe Databus")
-                ))
                 .info(new Info()
                         .title("tests-producer API")
                         .description(
@@ -38,10 +28,21 @@ public class OpenApiConfiguration {
 
     @Bean
     @SuppressWarnings("unchecked")
-    OpenApiCustomizer flowSelectorCustomizer(
+    OpenApiCustomizer testsProducerOpenApiCustomizer(
             FlowTopicsProperties flowTopics
     ) {
         return openApi -> {
+            openApi.setTags(List.of(
+                    new Tag()
+                            .name("originalMessage")
+                            .description("Publication d'un originalMessage "
+                                    + "dans Kafka avec les métadonnées "
+                                    + "Databus"),
+                    new Tag()
+                            .name("RAW Message")
+                            .description("Publication directe dans Kafka")
+            ));
+
             var pathItem = openApi.getPaths().get("/api/v1/events");
             if (pathItem == null || pathItem.getPost() == null) {
                 return;

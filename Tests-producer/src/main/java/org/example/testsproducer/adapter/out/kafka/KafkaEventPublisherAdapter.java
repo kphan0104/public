@@ -49,9 +49,15 @@ public class KafkaEventPublisherAdapter implements EventPublisherPort {
                     "Publication Kafka interrompue",
                     exception
             );
-        } catch (ExecutionException | TimeoutException exception) {
+        } catch (ExecutionException exception) {
+            Throwable kafkaCause = exception.getCause();
             throw new EventPublicationException(
-                    "Kafka n'a pas acquitté le message",
+                    kafkaCause.getMessage(),
+                    kafkaCause
+            );
+        } catch (TimeoutException exception) {
+            throw new EventPublicationException(
+                    exception.getMessage(),
                     exception
             );
         }

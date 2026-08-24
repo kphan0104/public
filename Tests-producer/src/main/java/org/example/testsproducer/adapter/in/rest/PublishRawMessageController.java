@@ -15,6 +15,7 @@ import org.example.testsproducer.application.port.in.PublishRawMessageCommand;
 import org.example.testsproducer.application.port.in.PublishRawMessageUseCase;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,8 +26,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/raw-events")
 @Tag(
-        name = "RAW messages",
-        description = "Publication directe sans enveloppe Databus"
+        name = "RAW Message",
+        description = "Publication directe dans Kafka"
 )
 public class PublishRawMessageController {
 
@@ -39,9 +40,7 @@ public class PublishRawMessageController {
     }
 
     @Operation(
-            summary = "Publier un message RAW dans Kafka",
-            description = "Le corps est publié tel quel, sans enveloppe "
-                    + "ni métadonnées Databus."
+            summary = "Publier un message RAW dans Kafka"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Message publié"),
@@ -57,12 +56,18 @@ public class PublishRawMessageController {
             ),
             @ApiResponse(
                     responseCode = "503",
-                    description = "Kafka indisponible",
-                    content = @Content
+                    description = "Erreur Kafka",
+                    content = @Content(
+                            mediaType = MediaType
+                                    .APPLICATION_PROBLEM_JSON_VALUE,
+                            schema = @Schema(
+                                    implementation = ProblemDetail.class
+                            )
+                    )
             )
     })
     @PostMapping(
-            consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE,
+            consumes = MediaType.TEXT_PLAIN_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<PublishRawMessageResponse> publish(
@@ -77,12 +82,8 @@ public class PublishRawMessageController {
                     description = "rawMessage",
                     required = true,
                     content = @Content(
-                            mediaType = MediaType
-                                    .APPLICATION_OCTET_STREAM_VALUE,
-                            schema = @Schema(
-                                    type = "string",
-                                    format = "binary"
-                            )
+                            mediaType = MediaType.TEXT_PLAIN_VALUE,
+                            schema = @Schema(type = "string")
                     )
             )
             @RequestBody

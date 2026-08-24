@@ -45,7 +45,7 @@ class PublishRawMessageControllerTest {
 
         mockMvc.perform(post("/api/v1/raw-events")
                 .queryParam("topic", "raw.events")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(MediaType.TEXT_PLAIN)
                 .content(rawMessage))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("published"))
@@ -65,7 +65,7 @@ class PublishRawMessageControllerTest {
     void rejectsAnEmptyRawMessage() throws Exception {
         mockMvc.perform(post("/api/v1/raw-events")
                 .queryParam("topic", "raw.events")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(MediaType.TEXT_PLAIN)
                 .content(new byte[0]))
                 .andExpect(status().isBadRequest());
     }

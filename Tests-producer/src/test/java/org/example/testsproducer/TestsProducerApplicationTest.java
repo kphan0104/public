@@ -46,9 +46,14 @@ class TestsProducerApplicationTest {
         var openApi = objectMapper.readTree(response);
         var tags = openApi.get("tags");
         assertThat(tags.get(0).get("name").asText())
-                .isEqualTo("Databus events");
+                .isEqualTo("originalMessage");
+        assertThat(tags.get(0).get("description").asText())
+                .isEqualTo("Publication d'un originalMessage dans Kafka "
+                        + "avec les métadonnées Databus");
         assertThat(tags.get(1).get("name").asText())
-                .isEqualTo("RAW messages");
+                .isEqualTo("RAW Message");
+        assertThat(tags.get(1).get("description").asText())
+                .isEqualTo("Publication directe dans Kafka");
 
         var paths = openApi.get("paths");
         var defaultOperation = paths
@@ -60,14 +65,43 @@ class TestsProducerApplicationTest {
         assertThat(paths.get("/api/v1/internal/events")).isNull();
         assertThat(paths.get("/api/v1/raw-events").get("post")).isNotNull();
         assertThat(defaultOperation.get("tags").get(0).asText())
-                .isEqualTo("Databus events");
+                .isEqualTo("originalMessage");
+        assertThat(defaultOperation.get("summary").asText())
+                .isEqualTo("Publier avec les valeurs Databus par défaut");
+        assertThat(customOperation.get("summary").asText())
+                .isEqualTo(
+                        "Publier avec des valeurs Databus personnalisées"
+                );
+        assertThat(defaultOperation.get("description")).isNull();
+        assertThat(customOperation.get("description")).isNull();
         assertThat(
                 paths.get("/api/v1/raw-events")
                         .get("post")
                         .get("tags")
                         .get(0)
                         .asText()
-        ).isEqualTo("RAW messages");
+        ).isEqualTo("RAW Message");
+        assertThat(
+                paths.get("/api/v1/raw-events")
+                        .get("post")
+                        .get("summary")
+                        .asText()
+        ).isEqualTo("Publier un message RAW dans Kafka");
+        assertThat(
+                paths.get("/api/v1/raw-events")
+                        .get("post")
+                        .get("description")
+        ).isNull();
+        assertThat(
+                paths.get("/api/v1/raw-events")
+                        .get("post")
+                        .get("requestBody")
+                        .get("content")
+                        .get("text/plain")
+                        .get("schema")
+                        .get("type")
+                        .asText()
+        ).isEqualTo("string");
         var defaultParameters = defaultOperation.get("parameters");
         var customParameters = customOperation.get("parameters");
 

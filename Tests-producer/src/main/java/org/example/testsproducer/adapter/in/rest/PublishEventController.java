@@ -18,6 +18,7 @@ import org.example.testsproducer.config.FlowTopicsProperties;
 import org.example.testsproducer.domain.model.DatabusEventTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,8 +29,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/events")
 @Tag(
-        name = "Databus events",
-        description = "Publication de messages avec une enveloppe Databus"
+        name = "originalMessage",
+        description = "Publication d'un originalMessage dans Kafka avec les "
+                + "métadonnées Databus"
 )
 public class PublishEventController {
 
@@ -45,9 +47,7 @@ public class PublishEventController {
     }
 
     @Operation(
-            summary = "Publier avec les valeurs Databus par défaut",
-            description = "Le topic Kafka est déterminé automatiquement à "
-                    + "partir du flux sélectionné."
+            summary = "Publier avec les valeurs Databus par défaut"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Message publié"),
@@ -63,8 +63,14 @@ public class PublishEventController {
             ),
             @ApiResponse(
                     responseCode = "503",
-                    description = "Kafka indisponible",
-                    content = @Content
+                    description = "Erreur Kafka",
+                    content = @Content(
+                            mediaType = MediaType
+                                    .APPLICATION_PROBLEM_JSON_VALUE,
+                            schema = @Schema(
+                                    implementation = ProblemDetail.class
+                            )
+                    )
             )
     })
     @PostMapping(
@@ -111,9 +117,7 @@ public class PublishEventController {
     }
 
     @Operation(
-            summary = "Publier avec des valeurs Databus personnalisées",
-            description = "Le topic Kafka et le nom du flux sont saisis "
-                    + "librement, sans utiliser flow-topics.yml."
+            summary = "Publier avec des valeurs Databus personnalisées"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Message publié"),
@@ -129,8 +133,14 @@ public class PublishEventController {
             ),
             @ApiResponse(
                     responseCode = "503",
-                    description = "Kafka indisponible",
-                    content = @Content
+                    description = "Erreur Kafka",
+                    content = @Content(
+                            mediaType = MediaType
+                                    .APPLICATION_PROBLEM_JSON_VALUE,
+                            schema = @Schema(
+                                    implementation = ProblemDetail.class
+                            )
+                    )
             )
     })
     @PostMapping(
