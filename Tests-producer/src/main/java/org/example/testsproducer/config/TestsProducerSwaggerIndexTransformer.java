@@ -60,7 +60,7 @@ final class TestsProducerSwaggerIndexTransformer
 
               function initializeDefaultMessage(operation) {
                 const operationPath = operation.querySelector(
-                  '.opblock-summary-path[data-path="/api/v1/events"]'
+                  '.opblock-summary-path[data-path="/events"]'
                 );
                 if (!operationPath) {
                   return;

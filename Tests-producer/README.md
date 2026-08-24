@@ -89,7 +89,7 @@ tests-producer:
 
 Les flux sont triés et affichés sous forme de liste déroulante dans Swagger.
 Après une modification de ce fichier, redémarrer l'application pour actualiser
-la liste. Les endpoints `/api/v1/events/custom` et `/api/v1/raw-events`
+la liste. Les endpoints `/events/custom` et `/raw-events`
 acceptent quant à eux un topic explicite et ne dépendent pas de cette liste.
 
 ### `originalMessage` proposé selon le flux
@@ -261,7 +261,7 @@ springdoc:
 
 ## API
 
-### `POST /api/v1/events`
+### `POST /events`
 
 L'endpoint attend :
 
@@ -279,10 +279,10 @@ curl --fail-with-body \
   --request POST \
   --header 'Content-Type: text/plain; charset=utf-8' \
   --data-binary '@./originalMessage.msg' \
-  'http://localhost:8080/api/v1/events?flow=payments'
+  'http://localhost:8080/events?flow=payments'
 ```
 
-### `POST /api/v1/events/custom`
+### `POST /events/custom`
 
 Cet endpoint ne consulte pas `flow-topics.yml`. Il reçoit un `topic` obligatoire
 saisi librement, un `flow` obligatoire saisi librement et un corps `text/plain`
@@ -303,14 +303,14 @@ curl --fail-with-body \
   --request POST \
   --header 'Content-Type: text/plain; charset=utf-8' \
   --data-binary '@./originalMessage.msg' \
-  'http://localhost:8080/api/v1/events/custom?flow=new-flow&topic=new-flow.events'
+  'http://localhost:8080/events/custom?flow=new-flow&topic=new-flow.events'
 ```
 
 Le contenu texte devient la valeur du champ `originalMessage` dans le message
 Kafka, sans être interprété comme du JSON. `timestamp`, `host`, `eventSize` et
 `lastStage` restent calculés automatiquement par le serveur.
 
-### `POST /api/v1/raw-events`
+### `POST /raw-events`
 
 Cet endpoint reçoit uniquement :
 
@@ -325,7 +325,7 @@ curl --fail-with-body \
   --request POST \
   --header 'Content-Type: text/plain; charset=utf-8' \
   --data-binary '@./raw-message' \
-  'http://localhost:8080/api/v1/raw-events?topic=raw.events'
+  'http://localhost:8080/raw-events?topic=raw.events'
 ```
 
 Le message RAW conserve exactement les octets reçus et est publié sans clé
@@ -352,7 +352,7 @@ Réponse après acquittement par Kafka :
 
 ## Message Kafka produit
 
-Les endpoints `/api/v1/events` et `/api/v1/events/custom` produisent une
+Les endpoints `/events` et `/events/custom` produisent une
 structure JSON imbriquée :
 
 ```json

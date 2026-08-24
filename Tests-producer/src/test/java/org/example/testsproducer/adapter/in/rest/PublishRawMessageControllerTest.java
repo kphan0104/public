@@ -43,7 +43,7 @@ class PublishRawMessageControllerTest {
                 )
         );
 
-        mockMvc.perform(post("/api/v1/raw-events")
+        mockMvc.perform(post("/raw-events")
                 .queryParam("topic", "raw.events")
                 .contentType(MediaType.TEXT_PLAIN)
                 .content(rawMessage))
@@ -63,7 +63,7 @@ class PublishRawMessageControllerTest {
 
     @Test
     void rejectsAnEmptyRawMessage() throws Exception {
-        mockMvc.perform(post("/api/v1/raw-events")
+        mockMvc.perform(post("/raw-events")
                 .queryParam("topic", "raw.events")
                 .contentType(MediaType.TEXT_PLAIN)
                 .content(new byte[0]))

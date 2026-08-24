@@ -55,7 +55,7 @@ public class OpenApiConfiguration {
                     )
             );
 
-            var pathItem = openApi.getPaths().get("/api/v1/events");
+            var pathItem = openApi.getPaths().get("/events");
             if (pathItem == null || pathItem.getPost() == null) {
                 return;
             }

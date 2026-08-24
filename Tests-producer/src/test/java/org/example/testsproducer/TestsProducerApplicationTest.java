@@ -75,13 +75,16 @@ class TestsProducerApplicationTest {
 
         var paths = openApi.get("paths");
         var defaultOperation = paths
-                .get("/api/v1/events")
+                .get("/events")
                 .get("post");
         var customOperation = paths
-                .get("/api/v1/events/custom")
+                .get("/events/custom")
                 .get("post");
-        assertThat(paths.get("/api/v1/internal/events")).isNull();
-        assertThat(paths.get("/api/v1/raw-events").get("post")).isNotNull();
+        assertThat(paths.get("/api/v1/events")).isNull();
+        assertThat(paths.get("/api/v1/events/custom")).isNull();
+        assertThat(paths.get("/api/v1/raw-events")).isNull();
+        assertThat(paths.get("/internal/events")).isNull();
+        assertThat(paths.get("/raw-events").get("post")).isNotNull();
         assertThat(defaultOperation.get("tags").get(0).asText())
                 .isEqualTo("originalMessage");
         assertThat(defaultOperation.get("summary").asText())
@@ -93,25 +96,25 @@ class TestsProducerApplicationTest {
         assertThat(defaultOperation.get("description")).isNull();
         assertThat(customOperation.get("description")).isNull();
         assertThat(
-                paths.get("/api/v1/raw-events")
+                paths.get("/raw-events")
                         .get("post")
                         .get("tags")
                         .get(0)
                         .asText()
         ).isEqualTo("RAW Message");
         assertThat(
-                paths.get("/api/v1/raw-events")
+                paths.get("/raw-events")
                         .get("post")
                         .get("summary")
                         .asText()
         ).isEqualTo("Publier un message RAW dans Kafka");
         assertThat(
-                paths.get("/api/v1/raw-events")
+                paths.get("/raw-events")
                         .get("post")
                         .get("description")
         ).isNull();
         assertThat(
-                paths.get("/api/v1/raw-events")
+                paths.get("/raw-events")
                         .get("post")
                         .get("requestBody")
                         .get("content")

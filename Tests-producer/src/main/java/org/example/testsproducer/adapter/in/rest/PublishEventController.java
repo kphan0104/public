@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/events")
+@RequestMapping("/events")
 @Tag(
         name = "originalMessage",
         description = "Publication d'un originalMessage dans Kafka avec les "

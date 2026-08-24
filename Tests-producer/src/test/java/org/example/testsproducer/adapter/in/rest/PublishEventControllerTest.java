@@ -50,7 +50,7 @@ class PublishEventControllerTest {
                 )
         );
 
-        mockMvc.perform(post("/api/v1/events")
+        mockMvc.perform(post("/events")
                 .queryParam("flow", "payments")
                 .contentType(MediaType.TEXT_PLAIN)
                 .content("2026-08-10 INFO paiement accepté"))
@@ -97,7 +97,7 @@ class PublishEventControllerTest {
                 )
         );
 
-        mockMvc.perform(post("/api/v1/events/custom")
+        mockMvc.perform(post("/events/custom")
                 .queryParam("topic", "custom.events")
                 .queryParam("flow", "payments")
                 .queryParam("ownerGroup", "custom-group")
@@ -123,7 +123,7 @@ class PublishEventControllerTest {
 
     @Test
     void rejectsARequestWithoutOriginalMessage() throws Exception {
-        mockMvc.perform(post("/api/v1/events")
+        mockMvc.perform(post("/events")
                 .queryParam("flow", "payments")
                 .contentType(MediaType.TEXT_PLAIN))
                 .andExpect(status().isBadRequest());
@@ -131,7 +131,7 @@ class PublishEventControllerTest {
 
     @Test
     void rejectsAnUnknownFlow() throws Exception {
-        mockMvc.perform(post("/api/v1/events")
+        mockMvc.perform(post("/events")
                 .queryParam("flow", "unknown")
                 .contentType(MediaType.TEXT_PLAIN)
                 .content("message log"))
@@ -152,7 +152,7 @@ class PublishEventControllerTest {
                 )
         );
 
-        mockMvc.perform(post("/api/v1/events")
+        mockMvc.perform(post("/events")
                 .queryParam("flow", "payments")
                 .contentType(MediaType.TEXT_PLAIN)
                 .content("message"))
