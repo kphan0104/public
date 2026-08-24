@@ -86,8 +86,8 @@ tests-producer:
 
 Les flux sont triés et affichés sous forme de liste déroulante dans Swagger.
 Après une modification de ce fichier, redémarrer l'application pour actualiser
-la liste. L'endpoint dédié au script Python accepte quant à lui un topic
-explicite et ne dépend pas de cette liste.
+la liste. Les endpoints `/api/v1/events/custom` et `/api/v1/raw-events`
+acceptent quant à eux un topic explicite et ne dépendent pas de cette liste.
 
 ### Kafka SSL avec les JKS
 
@@ -242,8 +242,10 @@ curl --fail-with-body \
 
 ### `POST /api/v1/events/custom`
 
-Cet endpoint reçoit le même `flow` et le même corps `text/plain`, ainsi que
-les paramètres optionnels préremplis dans Swagger : `ownerGroup`,
+Cet endpoint ne consulte pas `flow-topics.yml`. Il reçoit un `topic` obligatoire
+saisi librement, un `flow` obligatoire saisi librement et un corps `text/plain`
+contenant l'`originalMessage`. Les paramètres Databus optionnels sont
+préremplis dans Swagger : `ownerGroup`,
 `ownerEntity`, `ownerName`, `providerName`, `providerSource`, `formatVersion`,
 `formatType`, `retention`, `location`, `pipelineId` et
 `processingDurationMs`.
@@ -259,52 +261,51 @@ curl --fail-with-body \
   --request POST \
   --header 'Content-Type: text/plain; charset=utf-8' \
   --data-binary '@./originalMessage.msg' \
-  'http://localhost:8080/api/v1/events/custom?flow=payments'
+  'http://localhost:8080/api/v1/events/custom?flow=new-flow&topic=new-flow.events'
 ```
 
 Le contenu texte devient la valeur du champ `originalMessage` dans le message
 Kafka, sans être interprété comme du JSON. `timestamp`, `host`, `eventSize` et
 `lastStage` restent calculés automatiquement par le serveur.
 
-### `POST /api/v1/internal/events`
+### `POST /api/v1/raw-events`
 
-Cet endpoint est réservé au script Python du projet principal. Il reçoit :
+Cet endpoint reçoit uniquement :
 
-- `flow` : nom du flux ;
-- `topic` : topic Kafka extrait du dernier pipeline Logstash versionné ;
-- un corps `text/plain` contenant l'`originalMessage`.
+- `topic` : topic Kafka obligatoire saisi librement ;
+- un corps `application/octet-stream` non vide contenant le message RAW.
 
-Il utilise les valeurs Databus par défaut et permet de tester un nouveau flux
-sans l'ajouter préalablement à `flow-topics.yml` :
+Le corps est publié directement comme valeur Kafka, sans enveloppe JSON, sans
+`originalMessage` et sans métadonnées Databus :
 
 ```bash
 curl --fail-with-body \
   --request POST \
-  --header 'Content-Type: text/plain; charset=utf-8' \
-  --data-binary '@./originalMessage.msg' \
-  'http://localhost:8080/api/v1/internal/events?flow=new-flow&topic=new-flow.events'
+  --header 'Content-Type: application/octet-stream' \
+  --data-binary '@./raw-message' \
+  'http://localhost:8080/api/v1/raw-events?topic=raw.events'
 ```
 
-Le contrôleur est annoté `@Hidden` : il n'apparaît ni dans Swagger UI ni dans
-`/v3/api-docs`. Ce masquage est documentaire et ne constitue pas une mesure
-d'authentification ou de filtrage réseau.
+Le message RAW conserve exactement les octets reçus et est publié sans clé
+Kafka. La limite `tests-producer.publication.max-message-bytes` s'applique aussi
+à cet endpoint.
 
 Réponse après acquittement par Kafka :
 
 ```json
 {
   "status": "published",
-  "topic": "integration.events",
+  "topic": "raw.events",
   "partition": 1,
   "offset": 42,
-  "eventSize": 689,
-  "timestamp": "2026-07-24T10:30:15.123Z"
+  "messageSize": 689
 }
 ```
 
 ## Message Kafka produit
 
-Le message utilise une structure JSON imbriquée :
+Les endpoints `/api/v1/events` et `/api/v1/events/custom` produisent une
+structure JSON imbriquée :
 
 ```json
 {

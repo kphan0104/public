@@ -92,8 +92,14 @@ public class PublishEventController {
             @NotBlank
             String originalMessage
     ) {
+        String normalizedFlow = flow.trim();
+        String topic = flowTopics.topicFor(normalizedFlow);
+        if (topic == null) {
+            throw new UnknownFlowException(normalizedFlow);
+        }
         return publishEvent(
-                flow,
+                topic,
+                normalizedFlow,
                 originalMessage,
                 EventTemplateFactory.defaults()
         );
@@ -101,8 +107,8 @@ public class PublishEventController {
 
     @Operation(
             summary = "Publier avec des valeurs Databus personnalisées",
-            description = "Le topic Kafka est déterminé automatiquement à "
-                    + "partir du flux sélectionné."
+            description = "Le topic Kafka et le nom du flux sont saisis "
+                    + "librement, sans utiliser flow-topics.yml."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Message publié"),
@@ -128,6 +134,16 @@ public class PublishEventController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<PublishEventResponse> publishCustom(
+            @Parameter(
+                    description = "topic Kafka",
+                    required = true
+            )
+            @RequestParam
+            @NotBlank
+            @Size(max = 249)
+            @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")
+            String topic,
+
             @Parameter(
                     description = "databus.flow.name",
                     required = true
@@ -261,23 +277,23 @@ public class PublishEventController {
                 pipelineId,
                 processingDurationMs
         );
-        return publishEvent(flow, originalMessage, eventTemplate);
+        return publishEvent(
+                topic.trim(),
+                flow.trim(),
+                originalMessage,
+                eventTemplate
+        );
     }
 
     private ResponseEntity<PublishEventResponse> publishEvent(
+            String topic,
             String flow,
             String originalMessage,
             DatabusEventTemplate eventTemplate
     ) {
-        String normalizedFlow = flow.trim();
-        String topic = flowTopics.topicFor(normalizedFlow);
-        if (topic == null) {
-            throw new UnknownFlowException(normalizedFlow);
-        }
-
         var command = new PublishEventCommand(
                 topic,
-                normalizedFlow,
+                flow,
                 originalMessage,
                 eventTemplate
         );

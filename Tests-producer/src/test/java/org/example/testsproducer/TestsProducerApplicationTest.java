@@ -51,6 +51,7 @@ class TestsProducerApplicationTest {
                 .get("/api/v1/events/custom")
                 .get("post");
         assertThat(paths.get("/api/v1/internal/events")).isNull();
+        assertThat(paths.get("/api/v1/raw-events").get("post")).isNotNull();
         var defaultParameters = defaultOperation.get("parameters");
         var customParameters = customOperation.get("parameters");
 
@@ -61,8 +62,9 @@ class TestsProducerApplicationTest {
         assertThat(defaultParameters.size()).isEqualTo(1);
 
         var customFlow = findParameter(customParameters, "flow");
-        assertThat(customFlow.get("schema").get("enum").get(0).asText())
-                .isEqualTo("payments");
+        assertThat(customFlow.get("schema").get("enum")).isNull();
+        var topic = findParameter(customParameters, "topic");
+        assertThat(topic.get("required").asBoolean()).isTrue();
         var ownerGroup = findParameter(customParameters, "ownerGroup");
         assertThat(ownerGroup.get("schema").get("default").asText())
                 .isEqualTo("itgp");

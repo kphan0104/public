@@ -2,12 +2,12 @@ package org.example.testsproducer.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.StringSchema;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.ArrayList;
-import java.util.List;
 
 @Configuration(proxyBeanMethods = false)
 public class OpenApiConfiguration {
@@ -28,17 +28,24 @@ public class OpenApiConfiguration {
             FlowTopicsProperties flowTopics
     ) {
         return openApi -> {
-            List.of("/api/v1/events", "/api/v1/events/custom")
-                    .stream()
-                    .map(openApi.getPaths()::get)
-                    .filter(pathItem -> pathItem != null
-                            && pathItem.getPost() != null)
-                    .map(pathItem -> pathItem.getPost().getParameters())
-                    .flatMap(List::stream)
+            var pathItem = openApi.getPaths().get("/api/v1/events");
+            if (pathItem == null || pathItem.getPost() == null) {
+                return;
+            }
+            pathItem.getPost().getParameters().stream()
                     .filter(parameter -> "flow".equals(parameter.getName()))
-                    .forEach(parameter -> parameter.getSchema().setEnum(
-                            new ArrayList<>(flowTopics.topics().keySet())
-                    ));
+                    .findFirst()
+                    .ifPresent(parameter -> {
+                        var source = parameter.getSchema();
+                        var flowSchema = new StringSchema();
+                        flowSchema.setMinLength(source.getMinLength());
+                        flowSchema.setMaxLength(source.getMaxLength());
+                        flowSchema.setPattern(source.getPattern());
+                        flowSchema.setEnum(new ArrayList<>(
+                                flowTopics.topics().keySet()
+                        ));
+                        parameter.setSchema(flowSchema);
+                    });
         };
     }
 }
