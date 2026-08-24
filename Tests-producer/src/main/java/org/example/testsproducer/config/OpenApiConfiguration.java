@@ -18,11 +18,7 @@ public class OpenApiConfiguration {
     OpenAPI testsProducerOpenApi() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("tests-producer API")
-                        .description(
-                                "Publication d'originalMessages de tests "
-                                        + "dans Kafka"
-                        )
+                        .title("Tests Producer")
                         .version("1.0.0"));
     }
 

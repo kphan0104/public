@@ -33,6 +33,10 @@ tests-producer:
   logs:
     directory: ${TESTS_PRODUCER_LOG_DIR:./logs}
 
+springdoc:
+  swagger-ui:
+    default-models-expand-depth: -1
+
 server:
   port: 8080
   shutdown: graceful

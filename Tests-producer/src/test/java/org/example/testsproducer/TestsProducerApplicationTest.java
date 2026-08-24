@@ -21,7 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
                 + "org.apache.kafka.common.serialization.ByteArraySerializer",
         "tests-producer.publication.acknowledgement-timeout=10s",
         "tests-producer.publication.max-message-bytes=1000000",
-        "tests-producer.flows.topics.payments=integration.events"
+        "tests-producer.flows.topics.payments=integration.events",
+        "springdoc.swagger-ui.default-models-expand-depth=-1"
 })
 @AutoConfigureMockMvc
 class TestsProducerApplicationTest {
@@ -44,6 +45,11 @@ class TestsProducerApplicationTest {
                 .getResponse()
                 .getContentAsByteArray();
         var openApi = objectMapper.readTree(response);
+        assertThat(openApi.get("info").get("title").asText())
+                .isEqualTo("Tests Producer");
+        assertThat(openApi.get("info").get("version").asText())
+                .isEqualTo("1.0.0");
+        assertThat(openApi.get("info").get("description")).isNull();
         var tags = openApi.get("tags");
         assertThat(tags.get(0).get("name").asText())
                 .isEqualTo("originalMessage");
@@ -127,6 +133,21 @@ class TestsProducerApplicationTest {
                         .get("type")
                         .asText()
         ).isEqualTo("string");
+    }
+
+    @Test
+    void hidesSchemasInSwaggerUi() throws Exception {
+        var response = mockMvc.perform(get("/v3/api-docs/swagger-config"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+        var swaggerConfig = objectMapper.readTree(response);
+
+        assertThat(swaggerConfig.get("defaultModelsExpandDepth").asInt())
+                .isEqualTo(-1);
+        assertThat(swaggerConfig.get("url").asText())
+                .isEqualTo("/v3/api-docs");
     }
 
     private static tools.jackson.databind.JsonNode findParameter(

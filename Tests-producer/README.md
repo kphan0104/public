@@ -217,6 +217,15 @@ La description OpenAPI JSON est disponible sur :
 http://nom-machine:8080/v3/api-docs
 ```
 
+Swagger UI utilise cette URL pour charger la description OpenAPI ; elle doit
+donc rester accessible. La section `Schemas` est masquée avec :
+
+```yaml
+springdoc:
+  swagger-ui:
+    default-models-expand-depth: -1
+```
+
 ## API
 
 ### `POST /api/v1/events`
