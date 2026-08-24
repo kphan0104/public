@@ -16,7 +16,8 @@ import java.time.Clock;
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({
         PublicationProperties.class,
-        FlowTopicsProperties.class
+        FlowTopicsProperties.class,
+        SwaggerProperties.class
 })
 public class ApplicationConfiguration {
 

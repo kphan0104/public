@@ -58,6 +58,9 @@ En déploiement, placer les deux fichiers côte à côte :
 ├── tests-producer.jar
 ├── application.yml
 ├── flow-topics.yml
+├── original-messages/
+│   ├── payments.msg
+│   └── orders.msg
 ├── kafka-client-keystore.jks
 └── kafka-client-truststore.jks
 ```
@@ -88,6 +91,28 @@ Les flux sont triés et affichés sous forme de liste déroulante dans Swagger.
 Après une modification de ce fichier, redémarrer l'application pour actualiser
 la liste. Les endpoints `/api/v1/events/custom` et `/api/v1/raw-events`
 acceptent quant à eux un topic explicite et ne dépendent pas de cette liste.
+
+### `originalMessage` proposé selon le flux
+
+Swagger peut préremplir automatiquement l'`originalMessage` lorsque le flux
+change. Pour cela, créer un fichier UTF-8 nommé `<flux>.msg` dans le dossier
+configuré. Par exemple, le contenu de `original-messages/payments.msg` sera
+proposé lorsque le flux `payments` est sélectionné.
+
+Le dossier se configure dans `application.yml` :
+
+```yaml
+tests-producer:
+  swagger:
+    original-messages-directory: /opt/tests-producer/original-messages
+```
+
+Il peut aussi être défini avec la variable d'environnement
+`TESTS_PRODUCER_ORIGINAL_MESSAGES_DIR`. Un fichier est facultatif : s'il
+n'existe pas pour un flux, la zone de texte reste vide. Les messages proposés
+restent modifiables avant l'envoi. Après l'ajout ou la modification d'un
+fichier, redémarrer l'application puis recharger Swagger pour récupérer sa
+valeur.
 
 ### Kafka SSL avec les JKS
 
@@ -218,12 +243,20 @@ http://nom-machine:8080/v3/api-docs
 ```
 
 Swagger UI utilise cette URL pour charger la description OpenAPI ; elle doit
-donc rester accessible. La section `Schemas` est masquée avec :
+donc rester accessible. Son bandeau supérieur, le lien visible vers
+`/v3/api-docs`, la section `Servers`, l'intitulé `Request body` et la section
+`Schemas` sont masqués. La zone de saisie du message reste visible.
+
+Les endpoints restent repliés. Lorsqu'un endpoint est ouvert, ses champs sont
+directement éditables sans cliquer sur `Try it out` :
 
 ```yaml
 springdoc:
   swagger-ui:
+    path: /swagger-ui.html
     default-models-expand-depth: -1
+    doc-expansion: list
+    try-it-out-enabled: true
 ```
 
 ## API

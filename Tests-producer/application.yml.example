@@ -32,10 +32,16 @@ tests-producer:
     max-message-bytes: 1000000
   logs:
     directory: ${TESTS_PRODUCER_LOG_DIR:./logs}
+  swagger:
+    original-messages-directory: >-
+      ${TESTS_PRODUCER_ORIGINAL_MESSAGES_DIR:./original-messages}
 
 springdoc:
   swagger-ui:
+    path: /swagger-ui.html
     default-models-expand-depth: -1
+    doc-expansion: list
+    try-it-out-enabled: true
 
 server:
   port: 8080
@@ -64,8 +70,3 @@ management:
     health:
       probes:
         enabled: true
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    try-it-out-enabled: true

@@ -22,7 +22,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
         "tests-producer.publication.acknowledgement-timeout=10s",
         "tests-producer.publication.max-message-bytes=1000000",
         "tests-producer.flows.topics.payments=integration.events",
-        "springdoc.swagger-ui.default-models-expand-depth=-1"
+        "tests-producer.swagger.original-messages-directory="
+                + "src/test/resources/original-messages",
+        "springdoc.swagger-ui.default-models-expand-depth=-1",
+        "springdoc.swagger-ui.doc-expansion=list",
+        "springdoc.swagger-ui.try-it-out-enabled=true"
 })
 @AutoConfigureMockMvc
 class TestsProducerApplicationTest {
@@ -50,6 +54,14 @@ class TestsProducerApplicationTest {
         assertThat(openApi.get("info").get("version").asText())
                 .isEqualTo("1.0.0");
         assertThat(openApi.get("info").get("description")).isNull();
+        assertThat(openApi.get("servers")).isNull();
+        assertThat(
+                openApi.get(
+                                "x-tests-producer-default-original-messages"
+                        )
+                        .get("payments")
+                        .asText()
+        ).isEqualTo("2026-08-24 INFO Paiement accepté\n");
         var tags = openApi.get("tags");
         assertThat(tags.get(0).get("name").asText())
                 .isEqualTo("originalMessage");
@@ -146,8 +158,31 @@ class TestsProducerApplicationTest {
 
         assertThat(swaggerConfig.get("defaultModelsExpandDepth").asInt())
                 .isEqualTo(-1);
+        assertThat(swaggerConfig.get("docExpansion").asText())
+                .isEqualTo("list");
+        assertThat(swaggerConfig.get("tryItOutEnabled").asBoolean())
+                .isTrue();
         assertThat(swaggerConfig.get("url").asText())
                 .isEqualTo("/v3/api-docs");
+    }
+
+    @Test
+    void customizesSwaggerUiWithoutOpeningOperations() throws Exception {
+        String initializer = mockMvc.perform(
+                        get("/swagger-ui/swagger-initializer.js")
+                )
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(initializer)
+                .contains(".swagger-ui .topbar")
+                .contains(".swagger-ui .info .link")
+                .contains(".opblock-section-request-body")
+                .contains("x-tests-producer-default-original-messages")
+                .contains("\"docExpansion\" : \"list\"")
+                .contains("\"tryItOutEnabled\" : true");
     }
 
     private static tools.jackson.databind.JsonNode findParameter(
