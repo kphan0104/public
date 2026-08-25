@@ -38,10 +38,11 @@ Le domaine et le service applicatif ne dépendent pas de Spring.
 
 ## Configuration externe obligatoire
 
-Aucun fichier de configuration n'est embarqué dans le JAR. Au démarrage,
-l'application charge exclusivement `application.yml` et `flow-topics.yml`
-placés dans le même dossier que le JAR. Le démarrage échoue si l'un des deux
-fichiers est absent ou si aucun flux n'est configuré.
+Aucun fichier de configuration métier n'est embarqué dans le JAR. Au
+démarrage, l'application charge exclusivement `application.yml` et
+`flow-topics.yml` placés dans le même dossier que le JAR. Le démarrage échoue
+si l'un des deux fichiers est absent, si aucun flux n'est configuré ou si le
+token d'administration n'est pas renseigné.
 
 En développement avec Maven, le fichier doit être placé à la racine du projet :
 
@@ -88,9 +89,10 @@ tests-producer:
 ```
 
 Les flux sont triés et affichés sous forme de liste déroulante dans Swagger.
-Après une modification de ce fichier, redémarrer l'application pour actualiser
-la liste. Les endpoints `/events/custom` et `/raw-events`
-acceptent quant à eux un topic explicite et ne dépendent pas de cette liste.
+L'API d'administration décrite plus bas permet de créer un flux ou de changer
+son topic sans redémarrer l'application. Les endpoints `/events/custom` et
+`/raw-events` acceptent quant à eux un topic explicite et ne dépendent pas de
+cette liste.
 
 ### `originalMessage` proposé selon le flux
 
@@ -111,8 +113,8 @@ Il peut aussi être défini avec la variable d'environnement
 `TESTS_PRODUCER_ORIGINAL_MESSAGES_DIR`. Un fichier est facultatif : s'il
 n'existe pas pour un flux, la zone de texte reste vide. Les messages proposés
 restent modifiables avant l'envoi. Après l'ajout ou la modification d'un
-fichier, redémarrer l'application puis recharger Swagger pour récupérer sa
-valeur.
+fichier via l'API d'administration, il suffit de recharger Swagger pour
+récupérer sa valeur ; aucun redémarrage n'est nécessaire.
 
 Un fichier `.msg` peut contenir des marqueurs de timestamp. Ils sont remplacés
 uniquement dans le navigateur, au moment où Swagger affiche le message du flux :
@@ -224,6 +226,7 @@ En développement :
 ```bash
 cp application.yml.example application.yml
 cp flow-topics.yml.example flow-topics.yml
+export TESTS_PRODUCER_ADMIN_TOKEN="$(openssl rand -hex 32)"
 ./mvnw spring-boot:run
 ```
 
@@ -236,6 +239,8 @@ cp target/tests-producer-0.1.0-SNAPSHOT.jar deployment/tests-producer.jar
 cp application.yml.example deployment/application.yml
 cp flow-topics.yml.example deployment/flow-topics.yml
 # Modifier les deux fichiers YAML avec les vraies valeurs.
+export TESTS_PRODUCER_ADMIN_TOKEN="$(openssl rand -hex 32)"
+export TESTS_PRODUCER_FLOW_TOPICS_FILE="$PWD/deployment/flow-topics.yml"
 java -jar deployment/tests-producer.jar
 ```
 
@@ -279,6 +284,76 @@ springdoc:
     default-models-expand-depth: -1
     doc-expansion: list
     try-it-out-enabled: true
+```
+
+## Administration des flux
+
+Une seconde interface Swagger, séparée de l'API publique, permet de maintenir
+les flux et leurs exemples d'`originalMessage` :
+
+```text
+http://nom-machine:8080/admin/swagger-ui.html
+```
+
+Les endpoints d'administration n'apparaissent pas dans le Swagger public. Dans
+le Swagger d'administration, cliquer sur `Authorize` et saisir le token. Il
+sera envoyé dans le header `X-Admin-Token` à chaque requête.
+
+Le token est obligatoire, doit contenir au moins 32 caractères et se configure
+de préférence par variable d'environnement :
+
+```bash
+export TESTS_PRODUCER_ADMIN_TOKEN="$(openssl rand -hex 32)"
+```
+
+La configuration correspondante est :
+
+```yaml
+tests-producer:
+  admin:
+    token: ${TESTS_PRODUCER_ADMIN_TOKEN}
+    flow-topics-file: >-
+      ${TESTS_PRODUCER_FLOW_TOPICS_FILE:./flow-topics.yml}
+```
+
+`flow-topics-file` doit désigner le même fichier que celui chargé au démarrage.
+Avec systemd, il est conseillé de définir explicitement les deux variables :
+
+```ini
+[Service]
+Environment="TESTS_PRODUCER_ADMIN_TOKEN=remplacer-par-un-secret-de-32-caracteres-minimum"
+Environment="TESTS_PRODUCER_FLOW_TOPICS_FILE=/opt/tests-producer/flow-topics.yml"
+ExecStart=/usr/bin/java -jar /opt/tests-producer/tests-producer.jar --spring.config.location=file:/opt/tests-producer/application.yml,file:/opt/tests-producer/flow-topics.yml
+```
+
+Deux opérations sont disponibles :
+
+- `PUT /internal/flows/{flow}?topic=...` crée un flux ou modifie le topic qui
+  lui est associé ;
+- `PUT /internal/flows/{flow}/original-message` crée ou remplace le fichier
+  `<flow>.msg`. Le flux doit exister avant l'enregistrement du message.
+
+Une création retourne `201`, une mise à jour retourne `200`. Les écritures sont
+atomiques. Le fichier `flow-topics.yml` est réécrit en triant les flux ; ses
+commentaires éventuels ne sont donc pas conservés. Les changements sont pris
+en compte immédiatement par les endpoints de publication. Il faut seulement
+recharger la page Swagger publique pour actualiser la liste déroulante et les
+messages proposés.
+
+Exemples sans Swagger :
+
+```bash
+curl --fail-with-body \
+  --request PUT \
+  --header "X-Admin-Token: ${TESTS_PRODUCER_ADMIN_TOKEN}" \
+  'http://localhost:8080/internal/flows/payments?topic=payments.events'
+
+curl --fail-with-body \
+  --request PUT \
+  --header "X-Admin-Token: ${TESTS_PRODUCER_ADMIN_TOKEN}" \
+  --header 'Content-Type: text/plain; charset=utf-8' \
+  --data-binary '@./payments.msg' \
+  'http://localhost:8080/internal/flows/payments/original-message'
 ```
 
 ## API

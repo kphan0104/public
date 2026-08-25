@@ -14,7 +14,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.example.testsproducer.application.port.in.PublishEventCommand;
 import org.example.testsproducer.application.port.in.PublishEventUseCase;
-import org.example.testsproducer.config.FlowTopicsProperties;
+import org.example.testsproducer.application.port.in.FlowAdministrationUseCase;
 import org.example.testsproducer.domain.model.DatabusEventTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -36,14 +36,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class PublishEventController {
 
     private final PublishEventUseCase publishEventUseCase;
-    private final FlowTopicsProperties flowTopics;
+    private final FlowAdministrationUseCase flowAdministration;
 
     public PublishEventController(
             PublishEventUseCase publishEventUseCase,
-            FlowTopicsProperties flowTopics
+            FlowAdministrationUseCase flowAdministration
     ) {
         this.publishEventUseCase = publishEventUseCase;
-        this.flowTopics = flowTopics;
+        this.flowAdministration = flowAdministration;
     }
 
     @Operation(
@@ -104,7 +104,7 @@ public class PublishEventController {
             String originalMessage
     ) {
         String normalizedFlow = flow.trim();
-        String topic = flowTopics.topicFor(normalizedFlow);
+        String topic = flowAdministration.topicFor(normalizedFlow);
         if (topic == null) {
             throw new UnknownFlowException(normalizedFlow);
         }

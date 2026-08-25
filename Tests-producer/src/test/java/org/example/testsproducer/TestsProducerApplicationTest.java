@@ -10,6 +10,10 @@ import tools.jackson.databind.ObjectMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders
         .get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+        .put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
+        .jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
         .status;
 
@@ -24,6 +28,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
         "tests-producer.flows.topics.payments=integration.events",
         "tests-producer.swagger.original-messages-directory="
                 + "src/test/resources/original-messages",
+        "tests-producer.admin.token="
+                + "tests-producer-admin-token-for-tests-123456",
+        "tests-producer.admin.flow-topics-file="
+                + "target/test-flow-topics.yml",
+        "springdoc.cache.disabled=true",
         "springdoc.swagger-ui.default-models-expand-depth=-1",
         "springdoc.swagger-ui.doc-expansion=list",
         "springdoc.swagger-ui.try-it-out-enabled=true"
@@ -85,6 +94,10 @@ class TestsProducerApplicationTest {
         assertThat(paths.get("/api/v1/events/custom")).isNull();
         assertThat(paths.get("/api/v1/raw-events")).isNull();
         assertThat(paths.get("/internal/events")).isNull();
+        assertThat(paths.get("/internal/flows/{flow}")).isNull();
+        assertThat(
+                paths.get("/internal/flows/{flow}/original-message")
+        ).isNull();
         assertThat(paths.get("/raw-events").get("post")).isNotNull();
         assertThat(defaultOperation.get("tags").get(0).asText())
                 .isEqualTo("originalMessage");
@@ -129,8 +142,8 @@ class TestsProducerApplicationTest {
 
         var defaultFlow = findParameter(defaultParameters, "flow");
         assertThat(defaultFlow.get("required").asBoolean()).isTrue();
-        assertThat(defaultFlow.get("schema").get("enum").get(0).asText())
-                .isEqualTo("payments");
+        assertThat(defaultFlow.get("schema").get("enum").toString())
+                .contains("payments");
         assertThat(defaultParameters.size()).isEqualTo(1);
 
         var customFlow = findParameter(customParameters, "flow");
@@ -189,6 +202,85 @@ class TestsProducerApplicationTest {
                 .contains("message = resolveTimestamps(messageTemplate)")
                 .contains("\"docExpansion\" : \"list\"")
                 .contains("\"tryItOutEnabled\" : true");
+    }
+
+    @Test
+    void exposesASeparateAdminSwagger() throws Exception {
+        String page = mockMvc.perform(get("/admin/swagger-ui.html"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(page)
+                .contains("Tests Producer Administration")
+                .contains("/admin/api-docs")
+                .contains("SwaggerUIBundle");
+
+        var response = mockMvc.perform(get("/admin/api-docs"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+        var adminOpenApi = objectMapper.readTree(response);
+        assertThat(
+                adminOpenApi.get("paths").get("/internal/flows/{flow}")
+        ).isNotNull();
+        assertThat(
+                adminOpenApi.get("paths")
+                        .get("/internal/flows/{flow}/original-message")
+        ).isNotNull();
+        assertThat(
+                adminOpenApi.get("components")
+                        .get("securitySchemes")
+                        .get("AdminToken")
+                        .get("name")
+                        .asText()
+        ).isEqualTo("X-Admin-Token");
+    }
+
+    @Test
+    void protectsInternalEndpointsWithTheAdminToken() throws Exception {
+        mockMvc.perform(put("/internal/flows/payments")
+                        .queryParam("topic", "integration.events"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(put("/internal/flows/payments")
+                        .header(
+                                "X-Admin-Token",
+                                "tests-producer-admin-token-for-tests-123456"
+                        )
+                        .queryParam("topic", "integration.events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("updated"))
+                .andExpect(jsonPath("$.flow").value("payments"))
+                .andExpect(jsonPath("$.topic").value("integration.events"));
+    }
+
+    @Test
+    void exposesANewFlowInSwaggerWithoutRestarting() throws Exception {
+        mockMvc.perform(put("/internal/flows/dynamic-flow")
+                        .header(
+                                "X-Admin-Token",
+                                "tests-producer-admin-token-for-tests-123456"
+                        )
+                        .queryParam("topic", "dynamic.events"))
+                .andExpect(status().isCreated());
+
+        var response = mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+        var openApi = objectMapper.readTree(response);
+        var flow = findParameter(
+                openApi.get("paths")
+                        .get("/events")
+                        .get("post")
+                        .get("parameters"),
+                "flow"
+        );
+        assertThat(flow.get("schema").get("enum").toString())
+                .contains("dynamic-flow");
     }
 
     private static tools.jackson.databind.JsonNode findParameter(

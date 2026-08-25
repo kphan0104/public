@@ -3,6 +3,8 @@ package org.example.testsproducer.adapter.in.rest;
 import org.example.testsproducer.adapter.out.json.EventSerializationException;
 import org.example.testsproducer.application.exception.EventPublicationException;
 import org.example.testsproducer.application.exception.MessageTooLargeException;
+import org.example.testsproducer.application.exception.AdministrationStorageException;
+import org.example.testsproducer.application.exception.UnknownConfiguredFlowException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
@@ -92,6 +94,29 @@ public class ApiExceptionHandler {
         return problem(
                 HttpStatus.PAYLOAD_TOO_LARGE,
                 "Message trop volumineux",
+                exception.getMessage()
+        );
+    }
+
+    @ExceptionHandler(UnknownConfiguredFlowException.class)
+    ProblemDetail handleUnknownConfiguredFlow(
+            UnknownConfiguredFlowException exception
+    ) {
+        return problem(
+                HttpStatus.NOT_FOUND,
+                "Flux inconnu",
+                exception.getMessage()
+        );
+    }
+
+    @ExceptionHandler(AdministrationStorageException.class)
+    ProblemDetail handleAdministrationStorage(
+            AdministrationStorageException exception
+    ) {
+        LOGGER.error("Erreur d'écriture de la configuration", exception);
+        return problem(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Erreur d'administration",
                 exception.getMessage()
         );
     }

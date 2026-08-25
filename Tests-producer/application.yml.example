@@ -35,8 +35,14 @@ tests-producer:
   swagger:
     original-messages-directory: >-
       ${TESTS_PRODUCER_ORIGINAL_MESSAGES_DIR:./original-messages}
+  admin:
+    token: ${TESTS_PRODUCER_ADMIN_TOKEN}
+    flow-topics-file: >-
+      ${TESTS_PRODUCER_FLOW_TOPICS_FILE:./flow-topics.yml}
 
 springdoc:
+  cache:
+    disabled: true
   swagger-ui:
     path: /swagger-ui.html
     default-models-expand-depth: -1

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tests Producer Administration</title>
+  <link rel="stylesheet" href="/swagger-ui/swagger-ui.css">
+  <style>
+    body { margin: 0; background: #fafafa; }
+    .swagger-ui .info .link,
+    .swagger-ui .opblock-section-request-body .opblock-section-header {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div id="swagger-ui"></div>
+<script src="/swagger-ui/swagger-ui-bundle.js"></script>
+<script>
+  window.onload = function () {
+    window.ui = SwaggerUIBundle({
+      url: "/admin/api-docs",
+      dom_id: "#swagger-ui",
+      deepLinking: true,
+      docExpansion: "list",
+      tryItOutEnabled: true,
+      defaultModelsExpandDepth: -1,
+      persistAuthorization: false,
+      presets: [SwaggerUIBundle.presets.apis],
+      layout: "BaseLayout"
+    });
+  };
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.tags.Tag;
+import org.example.testsproducer.application.port.in.FlowAdministrationUseCase;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.properties.SwaggerUiConfigProperties;
 import org.springdoc.core.properties.SwaggerUiOAuthProperties;
@@ -33,7 +34,7 @@ public class OpenApiConfiguration {
     @Bean
     @SuppressWarnings("unchecked")
     OpenApiCustomizer testsProducerOpenApiCustomizer(
-            FlowTopicsProperties flowTopics,
+            FlowAdministrationUseCase flowAdministration,
             DefaultOriginalMessages defaultOriginalMessages
     ) {
         return openApi -> {
@@ -51,7 +52,7 @@ public class OpenApiConfiguration {
             openApi.addExtension(
                     DEFAULT_MESSAGES_EXTENSION,
                     defaultOriginalMessages.loadFor(
-                            flowTopics.topics().keySet()
+                            flowAdministration.topics().keySet()
                     )
             );
 
@@ -69,7 +70,7 @@ public class OpenApiConfiguration {
                         flowSchema.setMaxLength(source.getMaxLength());
                         flowSchema.setPattern(source.getPattern());
                         flowSchema.setEnum(new ArrayList<>(
-                                flowTopics.topics().keySet()
+                                flowAdministration.topics().keySet()
                         ));
                         parameter.setSchema(flowSchema);
                     });
