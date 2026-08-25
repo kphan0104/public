@@ -299,7 +299,7 @@ Les endpoints d'administration n'apparaissent pas dans le Swagger public. Dans
 le Swagger d'administration, cliquer sur `Authorize` et saisir le token. Il
 sera envoyé dans le header `X-Admin-Token` à chaque requête.
 
-Le token est obligatoire, doit contenir au moins 32 caractères et se configure
+Le token est obligatoire, doit contenir au moins 5 caractères et se configure
 de préférence par variable d'environnement :
 
 ```bash
@@ -321,7 +321,7 @@ Avec systemd, il est conseillé de définir explicitement les deux variables :
 
 ```ini
 [Service]
-Environment="TESTS_PRODUCER_ADMIN_TOKEN=remplacer-par-un-secret-de-32-caracteres-minimum"
+Environment="TESTS_PRODUCER_ADMIN_TOKEN=remplacer-par-un-secret-de-5-caracteres-minimum"
 Environment="TESTS_PRODUCER_FLOW_TOPICS_FILE=/opt/tests-producer/flow-topics.yml"
 ExecStart=/usr/bin/java -jar /opt/tests-producer/tests-producer.jar --spring.config.location=file:/opt/tests-producer/application.yml,file:/opt/tests-producer/flow-topics.yml
 ```

@@ -28,8 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
         "tests-producer.flows.topics.payments=integration.events",
         "tests-producer.swagger.original-messages-directory="
                 + "src/test/resources/original-messages",
-        "tests-producer.admin.token="
-                + "tests-producer-admin-token-for-tests-123456",
+        "tests-producer.admin.token=abcde",
         "tests-producer.admin.flow-topics-file="
                 + "target/test-flow-topics.yml",
         "springdoc.cache.disabled=true",
@@ -247,7 +246,7 @@ class TestsProducerApplicationTest {
         mockMvc.perform(put("/internal/flows/payments")
                         .header(
                                 "X-Admin-Token",
-                                "tests-producer-admin-token-for-tests-123456"
+                                "abcde"
                         )
                         .queryParam("topic", "integration.events"))
                 .andExpect(status().isOk())
@@ -261,7 +260,7 @@ class TestsProducerApplicationTest {
         mockMvc.perform(put("/internal/flows/dynamic-flow")
                         .header(
                                 "X-Admin-Token",
-                                "tests-producer-admin-token-for-tests-123456"
+                                "abcde"
                         )
                         .queryParam("topic", "dynamic.events"))
                 .andExpect(status().isCreated());

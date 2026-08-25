@@ -15,10 +15,10 @@ public final class AdminProperties {
     private final Path flowTopicsFile;
 
     public AdminProperties(String token, Path flowTopicsFile) {
-        if (token == null || token.length() < 32) {
+        if (token == null || token.length() < 5) {
             throw new IllegalArgumentException(
                     "tests-producer.admin.token doit contenir au moins "
-                            + "32 caractères"
+                            + "5 caractères"
             );
         }
         if (flowTopicsFile == null) {
