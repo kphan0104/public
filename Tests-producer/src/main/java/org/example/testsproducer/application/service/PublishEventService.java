@@ -7,6 +7,7 @@ import org.example.testsproducer.application.port.in.PublishEventUseCase;
 import org.example.testsproducer.application.port.out.EventPublisherPort;
 import org.example.testsproducer.application.port.out.EventSerializerPort;
 import org.example.testsproducer.application.port.out.HostnameProviderPort;
+import org.example.testsproducer.application.port.out.OriginalMessageNormalizerPort;
 import org.example.testsproducer.domain.model.DatabusEvent;
 
 import java.time.Clock;
@@ -18,6 +19,7 @@ public final class PublishEventService implements PublishEventUseCase {
     private final EventPublisherPort eventPublisher;
     private final EventSerializerPort eventSerializer;
     private final HostnameProviderPort hostnameProvider;
+    private final OriginalMessageNormalizerPort originalMessageNormalizer;
     private final Clock clock;
     private final int maxMessageBytes;
 
@@ -25,12 +27,14 @@ public final class PublishEventService implements PublishEventUseCase {
             EventPublisherPort eventPublisher,
             EventSerializerPort eventSerializer,
             HostnameProviderPort hostnameProvider,
+            OriginalMessageNormalizerPort originalMessageNormalizer,
             Clock clock,
             int maxMessageBytes
     ) {
         this.eventPublisher = eventPublisher;
         this.eventSerializer = eventSerializer;
         this.hostnameProvider = hostnameProvider;
+        this.originalMessageNormalizer = originalMessageNormalizer;
         this.clock = clock;
         this.maxMessageBytes = maxMessageBytes;
     }
@@ -39,7 +43,9 @@ public final class PublishEventService implements PublishEventUseCase {
     public PublishEventResult publish(PublishEventCommand command) {
         DatabusEvent event = command.eventTemplate().create(
                 command.flowName(),
-                command.originalMessage(),
+                originalMessageNormalizer.normalize(
+                        command.originalMessage()
+                ),
                 clock.instant(),
                 hostnameProvider.hostname()
         );

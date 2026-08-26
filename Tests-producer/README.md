@@ -403,9 +403,17 @@ curl --fail-with-body \
   'http://localhost:8080/events/custom?flow=new-flow&topic=new-flow.events'
 ```
 
-Le contenu texte devient la valeur du champ `originalMessage` dans le message
-Kafka, sans être interprété comme du JSON. `timestamp`, `host`, `eventSize` et
-`lastStage` restent calculés automatiquement par le serveur.
+Le contenu texte devient la valeur chaîne du champ `originalMessage` dans le
+message Kafka. `timestamp`, `host`, `eventSize` et `lastStage` restent calculés
+automatiquement par le serveur.
+
+Si l'`originalMessage` est un objet JSON valide, le serveur le compacte avant
+la publication : les espaces de mise en forme et les retours à la ligne situés
+hors des chaînes JSON sont supprimés. Il est ainsi envoyé sur une seule ligne,
+sans retour à la ligne final. Les espaces contenus dans les valeurs restent
+inchangés. Un message texte, un JSON invalide ou un tableau JSON est conservé
+exactement tel qu'il a été reçu. Ce traitement concerne `/events` et
+`/events/custom`, jamais `/raw-events`.
 
 ### `POST /raw-events`
 

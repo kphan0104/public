@@ -1,6 +1,7 @@
 package org.example.testsproducer.application.service;
 
 import org.example.testsproducer.adapter.out.json.JacksonEventSerializerAdapter;
+import org.example.testsproducer.adapter.out.json.JacksonOriginalMessageNormalizerAdapter;
 import org.example.testsproducer.application.exception.MessageTooLargeException;
 import org.example.testsproducer.application.port.in.PublishEventCommand;
 import org.example.testsproducer.application.port.out.EventPublisherPort;
@@ -37,6 +38,7 @@ class PublishEventServiceTest {
                 publisher,
                 new JacksonEventSerializerAdapter(objectMapper),
                 () -> "integration-host",
+                new JacksonOriginalMessageNormalizerAdapter(objectMapper),
                 Clock.fixed(
                         Instant.parse("2026-07-24T10:30:15.123Z"),
                         ZoneOffset.UTC
@@ -106,6 +108,7 @@ class PublishEventServiceTest {
                 },
                 new JacksonEventSerializerAdapter(objectMapper),
                 () -> "host",
+                new JacksonOriginalMessageNormalizerAdapter(objectMapper),
                 Clock.systemUTC(),
                 10
         );
@@ -118,6 +121,37 @@ class PublishEventServiceTest {
                         configuredTemplate()
                 )
         )).isInstanceOf(MessageTooLargeException.class);
+    }
+
+    @Test
+    void publishesAJsonOriginalMessageOnOneLine() throws Exception {
+        AtomicReference<byte[]> publishedPayload = new AtomicReference<>();
+        var service = new PublishEventService(
+                (topic, key, payload) -> {
+                    publishedPayload.set(payload);
+                    return new EventPublisherPort.PublishedRecord(
+                            topic,
+                            0,
+                            1L
+                    );
+                },
+                new JacksonEventSerializerAdapter(objectMapper),
+                () -> "host",
+                new JacksonOriginalMessageNormalizerAdapter(objectMapper),
+                Clock.systemUTC(),
+                1_000_000
+        );
+
+        service.publish(new PublishEventCommand(
+                "events",
+                "payments",
+                "{\n  \"message\": \"paiement accepté\"\n}\n",
+                configuredTemplate()
+        ));
+
+        var payload = objectMapper.readTree(publishedPayload.get());
+        assertThat(payload.get("originalMessage").asText())
+                .isEqualTo("{\"message\":\"paiement accepté\"}");
     }
 
     private static DatabusEventTemplate configuredTemplate() {

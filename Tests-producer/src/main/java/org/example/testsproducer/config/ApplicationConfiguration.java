@@ -8,6 +8,7 @@ import org.example.testsproducer.application.port.out.EventSerializerPort;
 import org.example.testsproducer.application.port.out.FlowTopicsStorePort;
 import org.example.testsproducer.application.port.out.HostnameProviderPort;
 import org.example.testsproducer.application.port.out.OriginalMessageStorePort;
+import org.example.testsproducer.application.port.out.OriginalMessageNormalizerPort;
 import org.example.testsproducer.application.service.FlowAdministrationService;
 import org.example.testsproducer.application.service.PublishEventService;
 import org.example.testsproducer.application.service.PublishRawMessageService;
@@ -78,6 +79,7 @@ public class ApplicationConfiguration {
             EventPublisherPort eventPublisher,
             EventSerializerPort eventSerializer,
             HostnameProviderPort hostnameProvider,
+            OriginalMessageNormalizerPort originalMessageNormalizer,
             Clock clock,
             PublicationProperties publicationProperties
     ) {
@@ -85,6 +87,7 @@ public class ApplicationConfiguration {
                 eventPublisher,
                 eventSerializer,
                 hostnameProvider,
+                originalMessageNormalizer,
                 clock,
                 publicationProperties.maxMessageBytes()
         );
