@@ -1,2 +1,0 @@
-line = re.sub(r"^(\s*if\b.*\S)\{(\s*)$", r"\1 {\2", line)
-line = re.sub(r"^(\s*else if\b.*\S)\{(\s*)$", r"\1 {\2", line)
