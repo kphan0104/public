@@ -1,10 +1,11 @@
 package org.example.testsproducer.adapter.in.rest;
 
-import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import org.example.testsproducer.application.port.in.FlowAdministrationUseCase;
+import org.example.testsproducer.application.port.in.FlowManagementUseCase;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,21 +16,25 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@Hidden
+@Tag(
+        name = "Flux",
+        description = "Gestion des flux et de leurs originalMessages"
+)
 @RestController
-@RequestMapping("/internal/flows")
-public class AdminFlowController {
+@RequestMapping("/flows")
+public class FlowController {
 
-    private final FlowAdministrationUseCase flowAdministration;
+    private final FlowManagementUseCase flowManagement;
 
-    public AdminFlowController(
-            FlowAdministrationUseCase flowAdministration
+    public FlowController(
+            FlowManagementUseCase flowManagement
     ) {
-        this.flowAdministration = flowAdministration;
+        this.flowManagement = flowManagement;
     }
 
+    @Operation(summary = "Créer un flux ou modifier son topic")
     @PutMapping(path = "/{flow}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<AdminFlowResponse> upsertFlow(
+    public ResponseEntity<FlowResponse> upsertFlow(
             @PathVariable
             @NotBlank
             @Size(max = 255)
@@ -42,12 +47,12 @@ public class AdminFlowController {
             @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")
             String topic
     ) {
-        var result = flowAdministration.upsertFlow(flow, topic);
+        var result = flowManagement.upsertFlow(flow, topic);
         HttpStatus status = result.created()
                 ? HttpStatus.CREATED
                 : HttpStatus.OK;
         return ResponseEntity.status(status).body(
-                new AdminFlowResponse(
+                new FlowResponse(
                         result.created() ? "created" : "updated",
                         result.flow(),
                         result.topic()
@@ -55,12 +60,13 @@ public class AdminFlowController {
         );
     }
 
+    @Operation(summary = "Créer ou remplacer un originalMessage")
     @PutMapping(
             path = "/{flow}/original-message",
             consumes = MediaType.TEXT_PLAIN_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<AdminOriginalMessageResponse> upsertOriginalMessage(
+    public ResponseEntity<OriginalMessageResponse> upsertOriginalMessage(
             @PathVariable
             @NotBlank
             @Size(max = 255)
@@ -71,7 +77,7 @@ public class AdminFlowController {
             @NotBlank
             String originalMessage
     ) {
-        var result = flowAdministration.upsertOriginalMessage(
+        var result = flowManagement.upsertOriginalMessage(
                 flow,
                 originalMessage
         );
@@ -79,7 +85,7 @@ public class AdminFlowController {
                 ? HttpStatus.CREATED
                 : HttpStatus.OK;
         return ResponseEntity.status(status).body(
-                new AdminOriginalMessageResponse(
+                new OriginalMessageResponse(
                         result.created() ? "created" : "updated",
                         result.flow()
                 )

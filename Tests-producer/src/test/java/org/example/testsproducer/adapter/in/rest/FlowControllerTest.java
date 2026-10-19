@@ -1,6 +1,6 @@
 package org.example.testsproducer.adapter.in.rest;
 
-import org.example.testsproducer.application.port.in.FlowAdministrationUseCase;
+import org.example.testsproducer.application.port.in.FlowManagementUseCase;
 import org.example.testsproducer.application.port.in.FlowUpsertResult;
 import org.example.testsproducer.application.port.in.OriginalMessageUpsertResult;
 import org.junit.jupiter.api.Test;
@@ -18,25 +18,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
         .status;
 
-@WebMvcTest(AdminFlowController.class)
-class AdminFlowControllerTest {
+@WebMvcTest(FlowController.class)
+class FlowControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private FlowAdministrationUseCase flowAdministration;
+    private FlowManagementUseCase flowManagement;
 
     @Test
     void createsOrUpdatesAFlow() throws Exception {
-        when(flowAdministration.upsertFlow("orders", "orders.events"))
+        when(flowManagement.upsertFlow("orders", "orders.events"))
                 .thenReturn(new FlowUpsertResult(
                         "orders",
                         "orders.events",
                         true
                 ));
 
-        mockMvc.perform(put("/internal/flows/orders")
+        mockMvc.perform(put("/flows/orders")
                         .queryParam("topic", "orders.events"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("created"))
@@ -46,12 +46,12 @@ class AdminFlowControllerTest {
 
     @Test
     void createsOrUpdatesAnOriginalMessage() throws Exception {
-        when(flowAdministration.upsertOriginalMessage(
+        when(flowManagement.upsertOriginalMessage(
                 "orders",
                 "{{NOW}} message"
         )).thenReturn(new OriginalMessageUpsertResult("orders", false));
 
-        mockMvc.perform(put("/internal/flows/orders/original-message")
+        mockMvc.perform(put("/flows/orders/original-message")
                         .contentType(MediaType.TEXT_PLAIN)
                         .content("{{NOW}} message"))
                 .andExpect(status().isOk())

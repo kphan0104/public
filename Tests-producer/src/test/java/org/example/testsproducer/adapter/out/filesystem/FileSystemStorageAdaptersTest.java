@@ -1,6 +1,6 @@
 package org.example.testsproducer.adapter.out.filesystem;
 
-import org.example.testsproducer.config.AdminProperties;
+import org.example.testsproducer.config.FlowTopicsProperties;
 import org.example.testsproducer.config.SwaggerProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -11,7 +11,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class FileSystemAdministrationAdaptersTest {
+class FileSystemStorageAdaptersTest {
 
     @TempDir
     private Path temporaryDirectory;
@@ -19,8 +19,8 @@ class FileSystemAdministrationAdaptersTest {
     @Test
     void rewritesTheFlowTopicsFileInSortedOrder() throws Exception {
         Path flowTopicsFile = temporaryDirectory.resolve("flow-topics.yml");
-        var properties = new AdminProperties(
-                "01234567890123456789012345678901",
+        var properties = new FlowTopicsProperties(
+                Map.of("payments", "payments.events"),
                 flowTopicsFile
         );
         var adapter = new FileSystemFlowTopicsStoreAdapter(properties);

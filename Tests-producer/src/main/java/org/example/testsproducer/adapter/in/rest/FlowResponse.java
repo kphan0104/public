@@ -1,6 +1,6 @@
 package org.example.testsproducer.adapter.in.rest;
 
-record AdminFlowResponse(
+record FlowResponse(
         String status,
         String flow,
         String topic

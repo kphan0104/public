@@ -4,7 +4,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.tags.Tag;
-import org.example.testsproducer.application.port.in.FlowAdministrationUseCase;
+import org.example.testsproducer.application.port.in.FlowManagementUseCase;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.properties.SwaggerUiConfigProperties;
 import org.springdoc.core.properties.SwaggerUiOAuthProperties;
@@ -34,7 +34,7 @@ public class OpenApiConfiguration {
     @Bean
     @SuppressWarnings("unchecked")
     OpenApiCustomizer testsProducerOpenApiCustomizer(
-            FlowAdministrationUseCase flowAdministration,
+            FlowManagementUseCase flowManagement,
             DefaultOriginalMessages defaultOriginalMessages
     ) {
         return openApi -> {
@@ -47,12 +47,16 @@ public class OpenApiConfiguration {
                                     + "Databus"),
                     new Tag()
                             .name("RAW Message")
-                            .description("Publication directe dans Kafka")
+                            .description("Publication directe dans Kafka"),
+                    new Tag()
+                            .name("Flux")
+                            .description("Gestion des flux et de leurs "
+                                    + "originalMessages")
             ));
             openApi.addExtension(
                     DEFAULT_MESSAGES_EXTENSION,
                     defaultOriginalMessages.loadFor(
-                            flowAdministration.topics().keySet()
+                            flowManagement.topics().keySet()
                     )
             );
 
@@ -70,7 +74,7 @@ public class OpenApiConfiguration {
                         flowSchema.setMaxLength(source.getMaxLength());
                         flowSchema.setPattern(source.getPattern());
                         flowSchema.setEnum(new ArrayList<>(
-                                flowAdministration.topics().keySet()
+                                flowManagement.topics().keySet()
                         ));
                         parameter.setSchema(flowSchema);
                     });

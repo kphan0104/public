@@ -1,6 +1,6 @@
 package org.example.testsproducer.adapter.in.rest;
 
-record AdminOriginalMessageResponse(
+record OriginalMessageResponse(
         String status,
         String flow
 ) {

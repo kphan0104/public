@@ -4,7 +4,7 @@ import org.example.testsproducer.application.exception.EventPublicationException
 import org.example.testsproducer.application.port.in.PublishEventCommand;
 import org.example.testsproducer.application.port.in.PublishEventResult;
 import org.example.testsproducer.application.port.in.PublishEventUseCase;
-import org.example.testsproducer.application.port.in.FlowAdministrationUseCase;
+import org.example.testsproducer.application.port.in.FlowManagementUseCase;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,11 +34,11 @@ class PublishEventControllerTest {
     private PublishEventUseCase useCase;
 
     @MockitoBean
-    private FlowAdministrationUseCase flowAdministration;
+    private FlowManagementUseCase flowManagement;
 
     @Test
     void publishesAnEventWithConfiguredDefaults() throws Exception {
-        when(flowAdministration.topicFor("payments"))
+        when(flowManagement.topicFor("payments"))
                 .thenReturn("integration.events");
         when(useCase.publish(any())).thenReturn(
                 new PublishEventResult(
@@ -125,7 +125,7 @@ class PublishEventControllerTest {
     void forwardsTimestampPlaceholdersWithoutResolvingThem() throws Exception {
         String originalMessage = "{\"timestamp\":"
                 + "\"{{NOW|yyyy-MM-dd'T'HH:mm:ss.SSSXXX|UTC}}\"}";
-        when(flowAdministration.topicFor("payments"))
+        when(flowManagement.topicFor("payments"))
                 .thenReturn("integration.events");
         when(useCase.publish(any())).thenReturn(
                 new PublishEventResult(
@@ -171,7 +171,7 @@ class PublishEventControllerTest {
     void exposesTheExactKafkaErrorMessage() throws Exception {
         String kafkaMessage = "Not authorized to access topics: "
                 + "[integration.events]";
-        when(flowAdministration.topicFor("payments"))
+        when(flowManagement.topicFor("payments"))
                 .thenReturn("integration.events");
         when(useCase.publish(any())).thenThrow(
                 new EventPublicationException(

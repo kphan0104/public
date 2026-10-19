@@ -1,6 +1,6 @@
 package org.example.testsproducer.adapter.out.filesystem;
 
-import org.example.testsproducer.application.exception.AdministrationStorageException;
+import org.example.testsproducer.application.exception.ConfigurationStorageException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -32,7 +32,7 @@ final class AtomicFileWriter {
             );
             move(temporaryFile, absoluteTarget);
         } catch (IOException exception) {
-            throw new AdministrationStorageException(
+            throw new ConfigurationStorageException(
                     "Impossible d'écrire le fichier " + absoluteTarget,
                     exception
             );

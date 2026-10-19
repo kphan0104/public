@@ -2,7 +2,7 @@ package org.example.testsproducer.application.port.in;
 
 import java.util.Map;
 
-public interface FlowAdministrationUseCase {
+public interface FlowManagementUseCase {
 
     String topicFor(String flow);
 

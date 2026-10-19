@@ -1,6 +1,6 @@
 package org.example.testsproducer.application.service;
 
-import org.example.testsproducer.application.exception.AdministrationStorageException;
+import org.example.testsproducer.application.exception.ConfigurationStorageException;
 import org.example.testsproducer.application.exception.MessageTooLargeException;
 import org.example.testsproducer.application.exception.UnknownConfiguredFlowException;
 import org.example.testsproducer.application.port.out.FlowTopicsStorePort;
@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class FlowAdministrationServiceTest {
+class FlowManagementServiceTest {
 
     @Test
     void createsAndUpdatesAFlowAfterPersistence() {
@@ -37,7 +37,7 @@ class FlowAdministrationServiceTest {
     @Test
     void keepsTheRuntimeRegistryUnchangedWhenPersistenceFails() {
         FlowTopicsStorePort failingStore = topics -> {
-            throw new AdministrationStorageException(
+            throw new ConfigurationStorageException(
                     "échec",
                     new IllegalStateException("disque indisponible")
             );
@@ -49,7 +49,7 @@ class FlowAdministrationServiceTest {
         );
 
         assertThatThrownBy(() -> service.upsertFlow("orders", "orders.events"))
-                .isInstanceOf(AdministrationStorageException.class);
+                .isInstanceOf(ConfigurationStorageException.class);
         assertThat(service.topicFor("orders")).isNull();
         assertThat(service.topicFor("payments"))
                 .isEqualTo("integration.events");
@@ -94,12 +94,12 @@ class FlowAdministrationServiceTest {
         )).isInstanceOf(MessageTooLargeException.class);
     }
 
-    private FlowAdministrationService service(
+    private FlowManagementService service(
             FlowTopicsStorePort topicsStore,
             OriginalMessageStorePort messageStore,
             int maxMessageBytes
     ) {
-        return new FlowAdministrationService(
+        return new FlowManagementService(
                 Map.of("payments", "integration.events"),
                 topicsStore,
                 messageStore,

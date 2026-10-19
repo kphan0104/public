@@ -1,7 +1,7 @@
 package org.example.testsproducer.adapter.out.filesystem;
 
 import org.example.testsproducer.application.port.out.FlowTopicsStorePort;
-import org.example.testsproducer.config.AdminProperties;
+import org.example.testsproducer.config.FlowTopicsProperties;
 
 import java.nio.file.Path;
 import java.util.Map;
@@ -12,8 +12,8 @@ public final class FileSystemFlowTopicsStoreAdapter
 
     private final Path flowTopicsFile;
 
-    public FileSystemFlowTopicsStoreAdapter(AdminProperties properties) {
-        flowTopicsFile = properties.flowTopicsFile();
+    public FileSystemFlowTopicsStoreAdapter(FlowTopicsProperties properties) {
+        flowTopicsFile = properties.topicsFile();
     }
 
     @Override

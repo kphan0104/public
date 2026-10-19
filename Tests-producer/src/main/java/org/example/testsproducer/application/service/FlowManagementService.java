@@ -2,7 +2,7 @@ package org.example.testsproducer.application.service;
 
 import org.example.testsproducer.application.exception.MessageTooLargeException;
 import org.example.testsproducer.application.exception.UnknownConfiguredFlowException;
-import org.example.testsproducer.application.port.in.FlowAdministrationUseCase;
+import org.example.testsproducer.application.port.in.FlowManagementUseCase;
 import org.example.testsproducer.application.port.in.FlowUpsertResult;
 import org.example.testsproducer.application.port.in.OriginalMessageUpsertResult;
 import org.example.testsproducer.application.port.out.FlowTopicsStorePort;
@@ -16,8 +16,7 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
-public final class FlowAdministrationService
-        implements FlowAdministrationUseCase {
+public final class FlowManagementService implements FlowManagementUseCase {
 
     private final FlowTopicsStorePort flowTopicsStore;
     private final OriginalMessageStorePort originalMessageStore;
@@ -25,7 +24,7 @@ public final class FlowAdministrationService
     private final ReentrantLock updateLock = new ReentrantLock();
     private final AtomicReference<Map<String, String>> topics;
 
-    public FlowAdministrationService(
+    public FlowManagementService(
             Map<String, String> initialTopics,
             FlowTopicsStorePort flowTopicsStore,
             OriginalMessageStorePort originalMessageStore,

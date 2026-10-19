@@ -3,7 +3,7 @@ package org.example.testsproducer.adapter.in.rest;
 import org.example.testsproducer.adapter.out.json.EventSerializationException;
 import org.example.testsproducer.application.exception.EventPublicationException;
 import org.example.testsproducer.application.exception.MessageTooLargeException;
-import org.example.testsproducer.application.exception.AdministrationStorageException;
+import org.example.testsproducer.application.exception.ConfigurationStorageException;
 import org.example.testsproducer.application.exception.UnknownConfiguredFlowException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,14 +109,14 @@ public class ApiExceptionHandler {
         );
     }
 
-    @ExceptionHandler(AdministrationStorageException.class)
-    ProblemDetail handleAdministrationStorage(
-            AdministrationStorageException exception
+    @ExceptionHandler(ConfigurationStorageException.class)
+    ProblemDetail handleConfigurationStorage(
+            ConfigurationStorageException exception
     ) {
         LOGGER.error("Erreur d'écriture de la configuration", exception);
         return problem(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Erreur d'administration",
+                "Erreur de configuration",
                 exception.getMessage()
         );
     }
