@@ -1,3 +1,4 @@
+
 ruby {
   init => '
     @empty_strings = [
@@ -7,20 +8,16 @@ ruby {
 
     def clean_hash(event, hash, parent)
       hash.each do |key, value|
+        path = "#{parent}[#{key}]"
 
-        if value.is_a?(Hash)
-          path = "#{parent}[#{key}]"
+        clean_hash(event, value, path) if value.is_a?(Hash)
 
-          clean_hash(event, value, path)
+        item = event.get(path)
 
-          item = event.get(path)
-          event.remove(path) if item.is_a?(Hash) && item.empty?
-
-        elsif value.nil? ||
-              (value.is_a?(String) && @empty_strings.include?(value))
-
-          event.remove("#{parent}[#{key}]")
-
+        if item.is_a?(Hash)
+          event.remove(path) if item.empty?
+        elsif item.nil? || @empty_strings.include?(item)
+          event.remove(path)
         end
       end
     end
@@ -30,3 +27,4 @@ ruby {
     clean_hash(event, event.to_hash, "")
   '
 }
+
