@@ -93,6 +93,11 @@ changer son topic sans redémarrer l'application. Les endpoints
 `/events/custom` et `/raw-events` acceptent quant à eux un topic explicite et
 ne dépendent pas de cette liste.
 
+Le registre utilisé par `/events` est actualisé immédiatement. Swagger charge
+sa liste au chargement de la page : après un ajout, une modification ou une
+suppression, il suffit donc de recharger la page Swagger, jamais le service.
+Le cache OpenAPI est désactivé par défaut par l'application.
+
 ### `originalMessage` proposé selon le flux
 
 Swagger peut préremplir automatiquement l'`originalMessage` lorsque le flux
@@ -311,6 +316,7 @@ Deux opérations sont disponibles :
 
 - `PUT /flows/{flow}?topic=...` crée un flux ou modifie le topic qui
   lui est associé ;
+- `DELETE /flows/{flow}` supprime un flux et son éventuel fichier `<flow>.msg` ;
 - `PUT /flows/{flow}/original-message` crée ou remplace le fichier
   `<flow>.msg`. Le flux doit exister avant l'enregistrement du message.
 
@@ -318,8 +324,9 @@ Une création retourne `201`, une mise à jour retourne `200`. Les écritures so
 atomiques. Le fichier `flow-topics.yml` est réécrit en triant les flux ; ses
 commentaires éventuels ne sont donc pas conservés. Les changements sont pris
 en compte immédiatement par les endpoints de publication. Il faut seulement
-recharger la page Swagger publique pour actualiser la liste déroulante et les
-messages proposés.
+recharger la page Swagger pour actualiser la liste déroulante et les messages
+proposés. Le dernier flux configuré ne peut pas être supprimé, afin de garantir
+que l'application puisse toujours redémarrer avec une configuration valide.
 
 Exemples sans Swagger :
 
@@ -327,6 +334,10 @@ Exemples sans Swagger :
 curl --fail-with-body \
   --request PUT \
   'http://localhost:8080/flows/payments?topic=payments.events'
+
+curl --fail-with-body \
+  --request DELETE \
+  'http://localhost:8080/flows/payments'
 
 curl --fail-with-body \
   --request PUT \

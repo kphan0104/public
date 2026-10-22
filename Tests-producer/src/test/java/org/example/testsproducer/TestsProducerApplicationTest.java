@@ -9,6 +9,8 @@ import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+        .delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders
         .get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders
         .put;
@@ -93,6 +95,7 @@ class TestsProducerApplicationTest {
         assertThat(paths.get("/api/v1/events/custom")).isNull();
         assertThat(paths.get("/api/v1/raw-events")).isNull();
         assertThat(paths.get("/flows/{flow}").get("put")).isNotNull();
+        assertThat(paths.get("/flows/{flow}").get("delete")).isNotNull();
         assertThat(
                 paths.get("/flows/{flow}/original-message").get("put")
         ).isNotNull();
@@ -233,6 +236,25 @@ class TestsProducerApplicationTest {
         );
         assertThat(flow.get("schema").get("enum").toString())
                 .contains("dynamic-flow");
+
+        mockMvc.perform(delete("/flows/dynamic-flow"))
+                .andExpect(status().isNoContent());
+
+        response = mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+        openApi = objectMapper.readTree(response);
+        flow = findParameter(
+                openApi.get("paths")
+                        .get("/events")
+                        .get("post")
+                        .get("parameters"),
+                "flow"
+        );
+        assertThat(flow.get("schema").get("enum").toString())
+                .doesNotContain("dynamic-flow");
     }
 
     private static tools.jackson.databind.JsonNode findParameter(

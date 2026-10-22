@@ -10,7 +10,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+        .delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders
         .put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers
@@ -57,5 +60,13 @@ class FlowControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("updated"))
                 .andExpect(jsonPath("$.flow").value("orders"));
+    }
+
+    @Test
+    void deletesAFlow() throws Exception {
+        mockMvc.perform(delete("/flows/orders"))
+                .andExpect(status().isNoContent());
+
+        verify(flowManagement).deleteFlow("orders");
     }
 }

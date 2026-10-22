@@ -1,6 +1,7 @@
 package org.example.testsproducer.application.service;
 
 import org.example.testsproducer.application.exception.ConfigurationStorageException;
+import org.example.testsproducer.application.exception.LastConfiguredFlowDeletionException;
 import org.example.testsproducer.application.exception.MessageTooLargeException;
 import org.example.testsproducer.application.exception.UnknownConfiguredFlowException;
 import org.example.testsproducer.application.port.out.FlowTopicsStorePort;
@@ -92,6 +93,57 @@ class FlowManagementServiceTest {
                 "payments",
                 "message"
         )).isInstanceOf(MessageTooLargeException.class);
+    }
+
+    @Test
+    void deletesAFlowAndItsOriginalMessageWithoutRestarting() {
+        AtomicReference<Map<String, String>> persisted =
+                new AtomicReference<>();
+        AtomicReference<String> deletedMessage = new AtomicReference<>();
+        OriginalMessageStorePort messageStore =
+                new OriginalMessageStorePort() {
+                    @Override
+                    public boolean save(String flow, String message) {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean delete(String flow) {
+                        deletedMessage.set(flow);
+                        return true;
+                    }
+                };
+        var service = new FlowManagementService(
+                Map.of(
+                        "payments", "integration.events",
+                        "orders", "orders.events"
+                ),
+                persisted::set,
+                messageStore,
+                1000
+        );
+
+        service.deleteFlow("orders");
+
+        assertThat(service.topicFor("orders")).isNull();
+        assertThat(persisted.get()).containsOnly(
+                Map.entry("payments", "integration.events")
+        );
+        assertThat(deletedMessage.get()).isEqualTo("orders");
+    }
+
+    @Test
+    void rejectsDeletingAnUnknownOrTheLastFlow() {
+        var service = service(
+                topics -> { },
+                (flow, message) -> true,
+                1000
+        );
+
+        assertThatThrownBy(() -> service.deleteFlow("unknown"))
+                .isInstanceOf(UnknownConfiguredFlowException.class);
+        assertThatThrownBy(() -> service.deleteFlow("payments"))
+                .isInstanceOf(LastConfiguredFlowDeletionException.class);
     }
 
     private FlowManagementService service(

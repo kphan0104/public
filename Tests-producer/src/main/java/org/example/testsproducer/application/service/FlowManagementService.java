@@ -1,5 +1,6 @@
 package org.example.testsproducer.application.service;
 
+import org.example.testsproducer.application.exception.LastConfiguredFlowDeletionException;
 import org.example.testsproducer.application.exception.MessageTooLargeException;
 import org.example.testsproducer.application.exception.UnknownConfiguredFlowException;
 import org.example.testsproducer.application.port.in.FlowManagementUseCase;
@@ -76,15 +77,42 @@ public final class FlowManagementService implements FlowManagementUseCase {
     }
 
     @Override
+    public void deleteFlow(String flow) {
+        String normalizedFlow = flow.trim();
+        FlowTopicMapping.validateFlow(normalizedFlow);
+
+        updateLock.lock();
+        try {
+            Map<String, String> currentTopics = topics.get();
+            if (!currentTopics.containsKey(normalizedFlow)) {
+                throw new UnknownConfiguredFlowException(normalizedFlow);
+            }
+            if (currentTopics.size() == 1) {
+                throw new LastConfiguredFlowDeletionException();
+            }
+
+            TreeMap<String, String> updatedTopics = new TreeMap<>(
+                    currentTopics
+            );
+            updatedTopics.remove(normalizedFlow);
+            Map<String, String> immutableTopics = Collections.unmodifiableMap(
+                    updatedTopics
+            );
+            flowTopicsStore.save(immutableTopics);
+            topics.set(immutableTopics);
+            originalMessageStore.delete(normalizedFlow);
+        } finally {
+            updateLock.unlock();
+        }
+    }
+
+    @Override
     public OriginalMessageUpsertResult upsertOriginalMessage(
             String flow,
             String originalMessage
     ) {
         String normalizedFlow = flow.trim();
         FlowTopicMapping.validateFlow(normalizedFlow);
-        if (!topics.get().containsKey(normalizedFlow)) {
-            throw new UnknownConfiguredFlowException(normalizedFlow);
-        }
         int messageSize = originalMessage.getBytes(
                 StandardCharsets.UTF_8
         ).length;
@@ -94,11 +122,19 @@ public final class FlowManagementService implements FlowManagementUseCase {
                     maxMessageBytes
             );
         }
-        boolean created = originalMessageStore.save(
-                normalizedFlow,
-                originalMessage
-        );
-        return new OriginalMessageUpsertResult(normalizedFlow, created);
+        updateLock.lock();
+        try {
+            if (!topics.get().containsKey(normalizedFlow)) {
+                throw new UnknownConfiguredFlowException(normalizedFlow);
+            }
+            boolean created = originalMessageStore.save(
+                    normalizedFlow,
+                    originalMessage
+            );
+            return new OriginalMessageUpsertResult(normalizedFlow, created);
+        } finally {
+            updateLock.unlock();
+        }
     }
 
     private static Map<String, String> immutableTopics(

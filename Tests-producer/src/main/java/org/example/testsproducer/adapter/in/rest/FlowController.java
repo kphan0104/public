@@ -9,6 +9,7 @@ import org.example.testsproducer.application.port.in.FlowManagementUseCase;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -58,6 +59,19 @@ public class FlowController {
                         result.topic()
                 )
         );
+    }
+
+    @Operation(summary = "Supprimer un flux")
+    @DeleteMapping(path = "/{flow}")
+    public ResponseEntity<Void> deleteFlow(
+            @PathVariable
+            @NotBlank
+            @Size(max = 255)
+            @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")
+            String flow
+    ) {
+        flowManagement.deleteFlow(flow);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Créer ou remplacer un originalMessage")

@@ -7,13 +7,21 @@ import org.springframework.boot.system.ApplicationHome;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Map;
 
 @SpringBootApplication
 public class TestsProducerApplication {
 
     public static void main(String[] args) {
         configureExternalApplicationYaml(args);
-        SpringApplication.run(TestsProducerApplication.class, args);
+        SpringApplication application = new SpringApplication(
+                TestsProducerApplication.class
+        );
+        application.setDefaultProperties(Map.of(
+                "springdoc.cache.disabled",
+                "true"
+        ));
+        application.run(args);
     }
 
     static void configureExternalApplicationYaml(String[] args) {

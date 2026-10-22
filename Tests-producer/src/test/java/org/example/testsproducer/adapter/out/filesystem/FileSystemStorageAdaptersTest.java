@@ -53,5 +53,9 @@ class FileSystemStorageAdaptersTest {
                 .isFalse();
         assertThat(Files.readString(messagesDirectory.resolve("payments.msg")))
                 .isEqualTo("{{NOW}} second message");
+        assertThat(adapter.delete("payments")).isTrue();
+        assertThat(messagesDirectory.resolve("payments.msg"))
+                .doesNotExist();
+        assertThat(adapter.delete("payments")).isFalse();
     }
 }

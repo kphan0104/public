@@ -10,6 +10,8 @@ public interface FlowManagementUseCase {
 
     FlowUpsertResult upsertFlow(String flow, String topic);
 
+    void deleteFlow(String flow);
+
     OriginalMessageUpsertResult upsertOriginalMessage(
             String flow,
             String originalMessage

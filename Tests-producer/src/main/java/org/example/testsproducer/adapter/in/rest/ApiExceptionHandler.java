@@ -1,9 +1,10 @@
 package org.example.testsproducer.adapter.in.rest;
 
 import org.example.testsproducer.adapter.out.json.EventSerializationException;
-import org.example.testsproducer.application.exception.EventPublicationException;
-import org.example.testsproducer.application.exception.MessageTooLargeException;
 import org.example.testsproducer.application.exception.ConfigurationStorageException;
+import org.example.testsproducer.application.exception.EventPublicationException;
+import org.example.testsproducer.application.exception.LastConfiguredFlowDeletionException;
+import org.example.testsproducer.application.exception.MessageTooLargeException;
 import org.example.testsproducer.application.exception.UnknownConfiguredFlowException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,6 +106,17 @@ public class ApiExceptionHandler {
         return problem(
                 HttpStatus.NOT_FOUND,
                 "Flux inconnu",
+                exception.getMessage()
+        );
+    }
+
+    @ExceptionHandler(LastConfiguredFlowDeletionException.class)
+    ProblemDetail handleLastConfiguredFlowDeletion(
+            LastConfiguredFlowDeletionException exception
+    ) {
+        return problem(
+                HttpStatus.CONFLICT,
+                "Suppression impossible",
                 exception.getMessage()
         );
     }
