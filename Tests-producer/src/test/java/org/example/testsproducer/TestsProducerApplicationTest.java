@@ -166,9 +166,11 @@ class TestsProducerApplicationTest {
         assertThat(defaultParameters.size()).isEqualTo(1);
 
         var customFlow = findParameter(customParameters, "flow");
-        assertThat(customFlow.get("schema").get("enum")).isNull();
-        var topic = findParameter(customParameters, "topic");
-        assertThat(topic.get("required").asBoolean()).isTrue();
+        assertThat(customFlow.get("schema").get("enum"))
+                .isEqualTo(defaultFlow.get("schema").get("enum"));
+        for (var parameter : customParameters) {
+            assertThat(parameter.get("name").asText()).isNotEqualTo("topic");
+        }
         var ownerGroup = findParameter(customParameters, "ownerGroup");
         assertThat(ownerGroup.get("schema").get("default").asText())
                 .isEqualTo("itgp");
@@ -245,15 +247,11 @@ class TestsProducerApplicationTest {
                 .getResponse()
                 .getContentAsByteArray();
         var openApi = objectMapper.readTree(response);
-        var flow = findParameter(
-                openApi.get("paths")
-                        .get("/events")
-                        .get("post")
-                        .get("parameters"),
-                "flow"
-        );
-        assertThat(flow.get("schema").get("enum").toString())
-                .contains("dynamic-flow");
+        for (String path : java.util.List.of("/events", "/events/provider", "/events/batch", "/events/custom")) {
+            var flow = findParameter(openApi.get("paths").get(path).get("post").get("parameters"), "flow");
+            assertThat(flow.get("schema").get("enum").toString())
+                    .as(path).contains("dynamic-flow");
+        }
 
         mockMvc.perform(delete("/flows/dynamic-flow"))
                 .andExpect(status().isNoContent());
@@ -264,15 +262,11 @@ class TestsProducerApplicationTest {
                 .getResponse()
                 .getContentAsByteArray();
         openApi = objectMapper.readTree(response);
-        flow = findParameter(
-                openApi.get("paths")
-                        .get("/events")
-                        .get("post")
-                        .get("parameters"),
-                "flow"
-        );
-        assertThat(flow.get("schema").get("enum").toString())
-                .doesNotContain("dynamic-flow");
+        for (String path : java.util.List.of("/events", "/events/provider", "/events/batch", "/events/custom")) {
+            var flow = findParameter(openApi.get("paths").get(path).get("post").get("parameters"), "flow");
+            assertThat(flow.get("schema").get("enum").toString())
+                    .as(path).doesNotContain("dynamic-flow");
+        }
     }
 
     private static tools.jackson.databind.JsonNode findParameter(

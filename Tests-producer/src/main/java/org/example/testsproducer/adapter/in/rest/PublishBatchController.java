@@ -67,7 +67,7 @@ public class PublishBatchController {
     )
     public ResponseEntity<PublishBatchResponse> publish(
             @Parameter(description = "databus.flow.name", required = true)
-            @RequestParam
+            @RequestParam(name = "flow")
             @NotBlank
             @Size(max = 255)
             @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")

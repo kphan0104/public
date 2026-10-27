@@ -82,7 +82,7 @@ public class PublishEventController {
                     description = "databus.flow.name",
                     required = true
             )
-            @RequestParam
+            @RequestParam(name = "flow")
             @NotBlank
             @Size(max = 255)
             @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")
@@ -134,7 +134,7 @@ public class PublishEventController {
     )
     public ResponseEntity<PublishEventResponse> publishWithProvider(
             @Parameter(description = "databus.flow.name", required = true)
-            @RequestParam
+            @RequestParam(name = "flow")
             @NotBlank
             @Size(max = 255)
             @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")
@@ -204,20 +204,10 @@ public class PublishEventController {
     )
     public ResponseEntity<PublishEventResponse> publishCustom(
             @Parameter(
-                    description = "topic Kafka",
-                    required = true
-            )
-            @RequestParam
-            @NotBlank
-            @Size(max = 249)
-            @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")
-            String topic,
-
-            @Parameter(
                     description = "databus.flow.name",
                     required = true
             )
-            @RequestParam
+            @RequestParam(name = "flow")
             @NotBlank
             @Size(max = 255)
             @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")
@@ -333,6 +323,11 @@ public class PublishEventController {
             @NotBlank
             String originalMessage
     ) {
+        String normalizedFlow = flow.trim();
+        String topic = flowManagement.topicFor(normalizedFlow);
+        if (topic == null) {
+            throw new UnknownFlowException(normalizedFlow);
+        }
         DatabusEventTemplate eventTemplate = EventTemplateFactory.create(
                 ownerGroup,
                 ownerEntity,
@@ -347,8 +342,8 @@ public class PublishEventController {
                 processingDurationMs
         );
         return publishEvent(
-                topic.trim(),
-                flow.trim(),
+                topic,
+                normalizedFlow,
                 originalMessage,
                 eventTemplate
         );

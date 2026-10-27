@@ -89,11 +89,12 @@ tests-producer:
 
 Les flux sont triés et affichés sous forme de liste déroulante dans Swagger.
 L'API de gestion des flux décrite plus bas permet de créer un flux ou de
-changer son topic sans redémarrer l'application. Les endpoints
-`/events/custom` et `/raw-events` acceptent quant à eux un topic explicite et
-ne dépendent pas de cette liste.
+changer son topic sans redémarrer l'application. Les quatre endpoints `/events`,
+`/events/provider`, `/events/batch` et `/events/custom` utilisent tous cette liste
+et déduisent le topic du flux sélectionné. Seul `/raw-events` demande un topic
+explicite.
 
-Le registre utilisé par `/events` est actualisé immédiatement. Swagger charge
+Le registre utilisé par les endpoints `/events` est actualisé immédiatement. Swagger charge
 sa liste au chargement de la page : après un ajout, une modification ou une
 suppression, il suffit donc de recharger la page Swagger, jamais le service.
 Le cache OpenAPI est désactivé par défaut par l'application.
@@ -484,9 +485,10 @@ du lot n'est effectué.
 
 ### `POST /events/custom`
 
-Cet endpoint ne consulte pas `flow-topics.yml`. Il reçoit un `topic` obligatoire
-saisi librement, un `flow` obligatoire saisi librement et un corps `text/plain`
-contenant l'`originalMessage`. Les paramètres Databus optionnels sont
+Cet endpoint reçoit un `flow` obligatoire choisi dans la même liste que `/events`
+et un corps `text/plain` contenant l'`originalMessage`. Le topic est déterminé
+automatiquement à partir de `flow-topics.yml` ; il n'est pas proposé dans Swagger
+et ne peut pas être modifié par cet appel. Les paramètres Databus optionnels sont
 préremplis dans Swagger : `ownerGroup`,
 `ownerEntity`, `ownerName`, `providerName`, `providerSource`, `formatVersion`,
 `formatType`, `retention`, `location`, `pipelineId` et
@@ -503,7 +505,7 @@ curl --fail-with-body \
   --request POST \
   --header 'Content-Type: text/plain; charset=utf-8' \
   --data-binary '@./originalMessage.msg' \
-  'http://localhost:8080/events/custom?flow=new-flow&topic=new-flow.events'
+  'http://localhost:8080/events/custom?flow=payments&ownerGroup=my-group'
 ```
 
 Le contenu texte devient la valeur chaîne du champ `originalMessage` dans le

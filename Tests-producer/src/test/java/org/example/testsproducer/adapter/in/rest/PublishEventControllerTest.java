@@ -110,9 +110,10 @@ class PublishEventControllerTest {
 
     @Test
     void acceptsSwaggerParameterOverrides() throws Exception {
+        when(flowManagement.topicFor("payments")).thenReturn("payments.events");
         when(useCase.publish(any())).thenReturn(
                 new PublishEventResult(
-                        "custom.events",
+                        "payments.events",
                         0,
                         1L,
                         100,
@@ -121,7 +122,6 @@ class PublishEventControllerTest {
         );
 
         mockMvc.perform(post("/events/custom")
-                .queryParam("topic", "custom.events")
                 .queryParam("flow", "payments")
                 .queryParam("ownerGroup", "custom-group")
                 .queryParam("formatType", "NDJSON")
@@ -134,7 +134,7 @@ class PublishEventControllerTest {
         verify(useCase).publish(command.capture());
         assertThat(command.getValue().eventTemplate().owner().group())
                 .isEqualTo("custom-group");
-        assertThat(command.getValue().topic()).isEqualTo("custom.events");
+        assertThat(command.getValue().topic()).isEqualTo("payments.events");
         assertThat(command.getValue().eventTemplate().format().type())
                 .isEqualTo("NDJSON");
         assertThat(
@@ -180,9 +180,10 @@ class PublishEventControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    @Test
-    void rejectsAnUnknownFlow() throws Exception {
-        mockMvc.perform(post("/events")
+    @ParameterizedTest
+    @ValueSource(strings = {"/events", "/events/provider", "/events/custom"})
+    void rejectsAnUnknownFlow(String path) throws Exception {
+        mockMvc.perform(post(path)
                 .queryParam("flow", "unknown")
                 .contentType(MediaType.TEXT_PLAIN)
                 .content("message log"))

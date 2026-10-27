@@ -6,6 +6,7 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.tags.Tag;
 import org.example.testsproducer.application.port.in.FlowManagementUseCase;
 import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springdoc.core.customizers.GlobalOperationCustomizer;
 import org.springdoc.core.properties.SwaggerUiConfigProperties;
 import org.springdoc.core.properties.SwaggerUiOAuthProperties;
 import org.springdoc.core.providers.ObjectMapperProvider;
@@ -32,7 +33,6 @@ public class OpenApiConfiguration {
     }
 
     @Bean
-    @SuppressWarnings("unchecked")
     OpenApiCustomizer testsProducerOpenApiCustomizer(
             FlowManagementUseCase flowManagement,
             DefaultOriginalMessages defaultOriginalMessages
@@ -59,29 +59,35 @@ public class OpenApiConfiguration {
                             flowManagement.topics().keySet()
                     )
             );
+        };
+    }
 
-            for (String path : List.of(
-                    "/events", "/events/provider", "/events/batch"
-            )) {
-                var pathItem = openApi.getPaths().get(path);
-                if (pathItem == null || pathItem.getPost() == null) {
-                    continue;
-                }
-                pathItem.getPost().getParameters().stream()
-                        .filter(parameter -> "flow".equals(parameter.getName()))
-                        .findFirst()
-                        .ifPresent(parameter -> {
-                            var source = parameter.getSchema();
-                            var flowSchema = new StringSchema();
+    @Bean
+    @SuppressWarnings("unchecked")
+    GlobalOperationCustomizer configuredFlowSelector(
+            FlowManagementUseCase flowManagement
+    ) {
+        return (operation, handlerMethod) -> {
+            if (operation.getParameters() == null) {
+                return operation;
+            }
+            operation.getParameters().stream()
+                    .filter(parameter -> "flow".equals(parameter.getName())
+                            && "query".equals(parameter.getIn()))
+                    .forEach(parameter -> {
+                        var source = parameter.getSchema();
+                        var flowSchema = new StringSchema();
+                        if (source != null) {
                             flowSchema.setMinLength(source.getMinLength());
                             flowSchema.setMaxLength(source.getMaxLength());
                             flowSchema.setPattern(source.getPattern());
-                            flowSchema.setEnum(new ArrayList<>(
-                                    flowManagement.topics().keySet()
-                            ));
-                            parameter.setSchema(flowSchema);
-                        });
-            }
+                        }
+                        flowSchema.setEnum(new ArrayList<>(
+                                flowManagement.topics().keySet()
+                        ));
+                        parameter.setSchema(flowSchema);
+                    });
+            return operation;
         };
     }
 
