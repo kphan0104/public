@@ -2,6 +2,8 @@ package org.example.testsproducer.adapter.in.rest;
 
 import org.example.testsproducer.adapter.out.json.EventSerializationException;
 import org.example.testsproducer.application.exception.ConfigurationStorageException;
+import org.example.testsproducer.application.exception.BatchPublicationException;
+import org.example.testsproducer.application.exception.InvalidVariablesException;
 import org.example.testsproducer.application.exception.EventPublicationException;
 import org.example.testsproducer.application.exception.LastConfiguredFlowDeletionException;
 import org.example.testsproducer.application.exception.MessageTooLargeException;
@@ -153,6 +155,22 @@ public class ApiExceptionHandler {
                 "Erreur Kafka",
                 exception.getMessage()
         );
+    }
+
+    @ExceptionHandler(InvalidVariablesException.class)
+    ProblemDetail handleInvalidVariables(InvalidVariablesException exception) {
+        return problem(HttpStatus.BAD_REQUEST, "Variables invalides", exception.getMessage());
+    }
+
+    @ExceptionHandler(BatchPublicationException.class)
+    ProblemDetail handleBatchPublication(BatchPublicationException exception) {
+        ProblemDetail problem = exception.getCause() instanceof EventPublicationException kafka
+                ? handleKafka(kafka)
+                : handleMessageTooLarge((MessageTooLargeException) exception.getCause());
+        problem.setProperty("requestedCount", exception.requestedCount());
+        problem.setProperty("publishedCount", exception.publishedCount());
+        problem.setProperty("failedMessageIndex", exception.publishedCount() + 1);
+        return problem;
     }
 
     @ExceptionHandler(EventSerializationException.class)

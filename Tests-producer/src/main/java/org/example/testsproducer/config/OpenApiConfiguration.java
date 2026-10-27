@@ -60,24 +60,28 @@ public class OpenApiConfiguration {
                     )
             );
 
-            var pathItem = openApi.getPaths().get("/events");
-            if (pathItem == null || pathItem.getPost() == null) {
-                return;
+            for (String path : List.of(
+                    "/events", "/events/provider", "/events/batch"
+            )) {
+                var pathItem = openApi.getPaths().get(path);
+                if (pathItem == null || pathItem.getPost() == null) {
+                    continue;
+                }
+                pathItem.getPost().getParameters().stream()
+                        .filter(parameter -> "flow".equals(parameter.getName()))
+                        .findFirst()
+                        .ifPresent(parameter -> {
+                            var source = parameter.getSchema();
+                            var flowSchema = new StringSchema();
+                            flowSchema.setMinLength(source.getMinLength());
+                            flowSchema.setMaxLength(source.getMaxLength());
+                            flowSchema.setPattern(source.getPattern());
+                            flowSchema.setEnum(new ArrayList<>(
+                                    flowManagement.topics().keySet()
+                            ));
+                            parameter.setSchema(flowSchema);
+                        });
             }
-            pathItem.getPost().getParameters().stream()
-                    .filter(parameter -> "flow".equals(parameter.getName()))
-                    .findFirst()
-                    .ifPresent(parameter -> {
-                        var source = parameter.getSchema();
-                        var flowSchema = new StringSchema();
-                        flowSchema.setMinLength(source.getMinLength());
-                        flowSchema.setMaxLength(source.getMaxLength());
-                        flowSchema.setPattern(source.getPattern());
-                        flowSchema.setEnum(new ArrayList<>(
-                                flowManagement.topics().keySet()
-                        ));
-                        parameter.setSchema(flowSchema);
-                    });
         };
     }
 

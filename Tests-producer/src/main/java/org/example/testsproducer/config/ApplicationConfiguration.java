@@ -3,6 +3,7 @@ package org.example.testsproducer.config;
 import org.example.testsproducer.adapter.out.filesystem.FileSystemFlowTopicsStoreAdapter;
 import org.example.testsproducer.adapter.out.filesystem.FileSystemOriginalMessageStoreAdapter;
 import org.example.testsproducer.application.port.in.FlowManagementUseCase;
+import org.example.testsproducer.application.port.in.PublishBatchUseCase;
 import org.example.testsproducer.application.port.in.PublishEventUseCase;
 import org.example.testsproducer.application.port.in.PublishRawMessageUseCase;
 import org.example.testsproducer.application.port.out.EventPublisherPort;
@@ -12,6 +13,7 @@ import org.example.testsproducer.application.port.out.HostnameProviderPort;
 import org.example.testsproducer.application.port.out.OriginalMessageNormalizerPort;
 import org.example.testsproducer.application.port.out.OriginalMessageStorePort;
 import org.example.testsproducer.application.service.FlowManagementService;
+import org.example.testsproducer.application.service.PublishBatchService;
 import org.example.testsproducer.application.service.PublishEventService;
 import org.example.testsproducer.application.service.PublishRawMessageService;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -77,6 +79,11 @@ public class ApplicationConfiguration {
                 clock,
                 publicationProperties.maxMessageBytes()
         );
+    }
+
+    @Bean
+    PublishBatchUseCase publishBatchUseCase(PublishEventUseCase publishEventUseCase) {
+        return new PublishBatchService(publishEventUseCase);
     }
 
     @Bean

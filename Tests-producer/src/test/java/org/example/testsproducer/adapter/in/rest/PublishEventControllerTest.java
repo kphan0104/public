@@ -6,6 +6,8 @@ import org.example.testsproducer.application.port.in.PublishEventResult;
 import org.example.testsproducer.application.port.in.PublishEventUseCase;
 import org.example.testsproducer.application.port.in.FlowManagementUseCase;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -83,6 +85,27 @@ class PublishEventControllerTest {
                         .eventTemplate()
                         .stage1ProcessingDurationMs()
         ).isEqualTo(100);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "another-provider"})
+    void publishesWithOnlyTheProviderNameOverridden(String providerName) throws Exception {
+        when(flowManagement.topicFor("payments")).thenReturn("integration.events");
+        when(useCase.publish(any())).thenReturn(
+                new PublishEventResult("integration.events", 0, 1, 640, "2026-10-27T10:00:00Z"));
+
+        var request = post("/events/provider").queryParam("flow", "payments")
+                .contentType(MediaType.TEXT_PLAIN).content("original message");
+        if (!providerName.isEmpty()) {
+            request.queryParam("providerName", providerName);
+        }
+        mockMvc.perform(request).andExpect(status().isCreated());
+
+        var command = ArgumentCaptor.forClass(PublishEventCommand.class);
+        verify(useCase).publish(command.capture());
+        assertThat(command.getValue().topic()).isEqualTo("integration.events");
+        assertThat(command.getValue().eventTemplate())
+                .isEqualTo(EventTemplateFactory.withProviderName(providerName.isEmpty() ? "itgp" : providerName));
     }
 
     @Test

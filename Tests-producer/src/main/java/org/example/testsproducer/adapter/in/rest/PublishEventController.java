@@ -117,6 +117,60 @@ public class PublishEventController {
     }
 
     @Operation(
+            summary = "Publier en personnalisant le nom du provider"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Message publié"),
+            @ApiResponse(responseCode = "400", description = "Requête ou flux invalide", content = @Content),
+            @ApiResponse(responseCode = "413", description = "Message trop volumineux", content = @Content),
+            @ApiResponse(responseCode = "503", description = "Erreur Kafka",
+                    content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                            schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PostMapping(
+            path = "/provider",
+            consumes = MediaType.TEXT_PLAIN_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<PublishEventResponse> publishWithProvider(
+            @Parameter(description = "databus.flow.name", required = true)
+            @RequestParam
+            @NotBlank
+            @Size(max = 255)
+            @Pattern(regexp = "^(?!\\.{1,2}$)[a-zA-Z0-9._-]+$")
+            String flow,
+
+            @Parameter(description = "databus.flow.provider.name")
+            @RequestParam(defaultValue = EventTemplateFactory.DEFAULT_PROVIDER_NAME)
+            @NotBlank
+            @Size(max = 255)
+            String providerName,
+
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "originalMessage",
+                    required = true,
+                    content = @Content(mediaType = MediaType.TEXT_PLAIN_VALUE,
+                            schema = @Schema(type = "string"),
+                            examples = @ExampleObject(value = "2026-08-10 INFO Message de test"))
+            )
+            @RequestBody
+            @NotBlank
+            String originalMessage
+    ) {
+        String normalizedFlow = flow.trim();
+        String topic = flowManagement.topicFor(normalizedFlow);
+        if (topic == null) {
+            throw new UnknownFlowException(normalizedFlow);
+        }
+        return publishEvent(
+                topic,
+                normalizedFlow,
+                originalMessage,
+                EventTemplateFactory.withProviderName(providerName)
+        );
+    }
+
+    @Operation(
             summary = "Publier avec des valeurs Databus personnalisées"
     )
     @ApiResponses({

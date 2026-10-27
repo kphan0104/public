@@ -252,8 +252,9 @@ L'API écoute par défaut sur le port `8080`. Le health check est disponible sur
 ## Swagger UI
 
 L'interface graphique permet de choisir un flux et de saisir directement
-l'`originalMessage` dans une zone de texte. Un second endpoint permet de
-modifier toutes les valeurs Databus :
+l'`originalMessage` dans une zone de texte. Elle propose aussi la personnalisation
+du provider seul, la personnalisation de toutes les valeurs Databus et l'envoi
+par lot avec des variables aléatoires :
 
 ```text
 http://nom-machine:8080/swagger-ui.html
@@ -312,7 +313,7 @@ Environment="TESTS_PRODUCER_FLOW_TOPICS_FILE=/opt/tests-producer/flow-topics.yml
 ExecStart=/usr/bin/java -jar /opt/tests-producer/tests-producer.jar --spring.config.location=file:/opt/tests-producer/application.yml,file:/opt/tests-producer/flow-topics.yml
 ```
 
-Deux opérations sont disponibles :
+Les opérations suivantes sont disponibles :
 
 - `PUT /flows/{flow}?topic=...` crée un flux ou modifie le topic qui
   lui est associé ;
@@ -369,6 +370,118 @@ curl --fail-with-body \
   'http://localhost:8080/events?flow=payments'
 ```
 
+### `POST /events/provider`
+
+Cet endpoint utilise le même sélecteur de flux et le même corps `text/plain`
+que `/events`. Son seul paramètre Databus modifiable est `providerName`,
+correspondant à `databus.flow.provider.name`, prérempli avec `itgp` dans Swagger.
+Le topic vient du flux sélectionné et toutes les autres métadonnées utilisent
+leurs valeurs par défaut.
+
+```bash
+curl --fail-with-body \
+  --request POST \
+  --header 'Content-Type: text/plain; charset=utf-8' \
+  --data-binary '@./originalMessage.msg' \
+  'http://localhost:8080/events/provider?flow=payments&providerName=my-provider'
+```
+
+### `POST /events/batch`
+
+Cet endpoint publie de **1 à 1000 messages** dans le topic du flux sélectionné,
+avec toutes les métadonnées Databus par défaut. Swagger présente quatre champs :
+
+- `flow` : le sélecteur de flux ;
+- `originalMessage` : le message modèle, dans une zone de texte ;
+- `count` : le nombre de messages, prérempli à `100` ;
+- `variables` : les règles de génération, dans une zone de texte JSON.
+
+Exemple de message modèle :
+
+```text
+Utilisateur=${USER}, montant=${AMOUNT}, statut=${STATUS}
+```
+
+Exemple de `variables` :
+
+```json
+{
+  "USER": {
+    "type": "string",
+    "length": 8,
+    "characters": "a-z"
+  },
+  "AMOUNT": {
+    "type": "integer",
+    "min": 1,
+    "max": 10000
+  },
+  "STATUS": {
+    "type": "choice",
+    "values": ["OK", "ERROR", "PENDING"]
+  }
+}
+```
+
+`string` génère une chaîne de la longueur demandée (de 1 à 10000 caractères).
+`characters` accepte des caractères littéraux et des intervalles, par exemple
+`a-z`, `A-Z`, `0-9` ou `a-zA-Z0-9`. Pour une seule lettre, utiliser `length: 1`.
+`integer` tire un entier entre `min` et `max`, bornes incluses (entiers signés
+sur 32 bits). `choice` choisit une valeur dans une liste non vide de chaînes.
+Les noms de variables acceptent les lettres, chiffres et `_`, sans commencer
+par un chiffre.
+
+Chaque message reçoit un nouveau tirage. Plusieurs occurrences du même token
+dans un message reçoivent la même valeur. Les valeurs sont insérées littéralement,
+sans réinterpréter les éventuels tokens qu'elles contiennent. Les tirages peuvent
+produire des doublons. Un champ `variables` vide, absent ou égal à `{}` permet
+de répéter le message sans variables. Un token sans règle, un JSON invalide
+ou une règle invalide produit une erreur `400` avant le premier envoi.
+
+Les variables sont remplacées côté serveur pour ce seul endpoint. Le mécanisme
+`{{NOW}}` existant reste résolu uniquement dans Swagger à l'affichage du message.
+L'enveloppe Databus, son timestamp et sa taille sont construits séparément pour
+chaque message. Un `originalMessage` contenant du JSON doit conserver les
+guillemets autour des valeurs textuelles :
+
+```text
+{"user":"${USER}","amount":${AMOUNT},"status":"${STATUS}"}
+```
+
+L'appel attend les acquittements Kafka et retourne `201` une fois le lot publié :
+
+```json
+{
+  "status": "published",
+  "topic": "integration.events",
+  "requestedCount": 100,
+  "publishedCount": 100
+}
+```
+
+Le corps HTTP reste `text/plain` ; `variables` est un paramètre de requête
+contenant du JSON, encodé automatiquement par Swagger. Exemple avec un fichier
+`variables.json` et un fichier `originalMessage.msg` :
+
+```bash
+curl --fail-with-body \
+  --request POST \
+  --url-query 'flow=payments' \
+  --url-query 'count=100' \
+  --url-query 'variables@./variables.json' \
+  --header 'Content-Type: text/plain; charset=utf-8' \
+  --data-binary '@./originalMessage.msg' \
+  'http://localhost:8080/events/batch'
+```
+
+Le lot s'arrête à la première erreur de publication. La réponse conserve le
+statut `503` et le message exact de Kafka (ou `413` si un message dépasse la
+taille configurée). Elle ajoute `requestedCount`, `publishedCount` et
+`failedMessageIndex`, numéroté à partir de 1. `publishedCount` ne compte que les
+messages acquittés ; en cas de timeout, l'état du message en cours peut rester
+inconnu. Les messages déjà publiés restent dans Kafka et aucun renvoi automatique
+du lot n'est effectué.
+
 ### `POST /events/custom`
 
 Cet endpoint ne consulte pas `flow-topics.yml`. Il reçoit un `topic` obligatoire
@@ -402,8 +515,8 @@ la publication : les espaces de mise en forme et les retours à la ligne situés
 hors des chaînes JSON sont supprimés. Il est ainsi envoyé sur une seule ligne,
 sans retour à la ligne final. Les espaces contenus dans les valeurs restent
 inchangés. Un message texte, un JSON invalide ou un tableau JSON est conservé
-exactement tel qu'il a été reçu. Ce traitement concerne `/events` et
-`/events/custom`, jamais `/raw-events`.
+exactement tel qu'il a été reçu. Ce traitement concerne tous les endpoints
+`/events`, jamais `/raw-events`.
 
 ### `POST /raw-events`
 
@@ -427,7 +540,7 @@ Le message RAW conserve exactement les octets reçus et est publié sans clé
 Kafka. La limite `tests-producer.publication.max-message-bytes` s'applique aussi
 à cet endpoint.
 
-En cas d'erreur Kafka, les trois endpoints retournent un statut `503` avec un
+En cas d'erreur Kafka, les endpoints de publication retournent un statut `503` avec un
 corps `application/problem+json`. Le champ `detail` contient directement le
 message de l'exception retournée par le client Kafka, notamment pour les erreurs
 d'ACL. La cause et sa stack trace complète sont également écrites dans les logs
@@ -445,9 +558,47 @@ Réponse après acquittement par Kafka :
 }
 ```
 
+## Envoyer un message par IP d'un CSV avec curl
+
+Le script `send_csv_ips.py` lit un CSV `ip,hostname` et exécute un POST curl
+vers `/raw-events` pour chaque entrée. Le message modèle JSON est défini directement
+dans la constante `ORIGINAL_MESSAGE` en haut du script. Toutes les occurrences
+de `${IP}` sont remplacées par l'IP de la ligne courante.
+Le hostname n'est pas utilisé. Le message complet est envoyé en `text/plain`,
+sans ajout de métadonnées Databus, ni conversion JSON, ni modification des retours
+à la ligne du modèle.
+
+Coller le contenu du fichier `.json` entre les triples apostrophes, par exemple :
+
+```python
+ORIGINAL_MESSAGE = r'''{
+  "source_ip": "${IP}",
+  "message": "Test de connexion"
+}'''
+```
+
+Conserver le préfixe `r` pour préserver les antislashs du JSON. Le script vérifie
+que le modèle contient le token et constitue un JSON valide avant tout envoi.
+
+Configurer `API_URL` et `TOPIC` en haut du script, puis lancer :
+
+```bash
+python3 send_csv_ips.py machines.csv
+```
+
+Le fichier peut contenir ou non l'en-tête `ip,hostname`. Les lignes vides sont
+ignorées. Le script s'arrête à la première erreur en affichant la ligne du CSV
+et la réponse de l'API ; les messages déjà envoyés restent publiés.
+Si le modèle ne contient pas `${IP}`, le script échoue avant tout envoi.
+Le token peut être modifié avec la constante `IP_TOKEN` en haut du script.
+Il utilise uniquement la bibliothèque standard Python (Python 3.6 ou supérieur)
+et la commande `curl`, disponible sous macOS, Linux et Windows. Aucun `pip install`
+n'est nécessaire. Sous Windows, la commande peut être
+`py send_csv_ips.py machines.csv`.
+
 ## Message Kafka produit
 
-Les endpoints `/events` et `/events/custom` produisent une
+Les endpoints de publication sous `/events` produisent une
 structure JSON imbriquée :
 
 ```json

@@ -184,7 +184,9 @@ final class TestsProducerSwaggerIndexTransformer
 
               function initializeDefaultMessage(operation) {
                 const operationPath = operation.querySelector(
-                  '.opblock-summary-path[data-path="/events"]'
+                  '.opblock-summary-path[data-path="/events"], '
+                    + '.opblock-summary-path[data-path="/events/provider"], '
+                    + '.opblock-summary-path[data-path="/events/batch"]'
                 );
                 if (!operationPath) {
                   return;

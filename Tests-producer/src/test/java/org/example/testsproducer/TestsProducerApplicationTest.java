@@ -85,6 +85,24 @@ class TestsProducerApplicationTest {
         assertThat(tags.get(2).get("name").asText()).isEqualTo("Flux");
 
         var paths = openApi.get("paths");
+        var providerOperation = paths.get("/events/provider").get("post");
+        var providerParameters = providerOperation.get("parameters");
+        assertThat(providerParameters.size()).isEqualTo(2);
+        assertThat(findParameter(providerParameters, "providerName").get("schema").get("default").asText())
+                .isEqualTo("itgp");
+        assertThat(findParameter(providerParameters, "flow").get("schema").get("enum").toString())
+                .contains("payments");
+        var batchOperation = paths.get("/events/batch").get("post");
+        var batchParameters = batchOperation.get("parameters");
+        assertThat(batchParameters.size()).isEqualTo(3);
+        assertThat(findParameter(batchParameters, "flow").get("schema").get("enum").toString())
+                .contains("payments");
+        assertThat(findParameter(batchParameters, "count").get("schema").get("maximum").asInt())
+                .isEqualTo(1000);
+        assertThat(findParameter(batchParameters, "variables").get("content").get("application/json")
+                .get("schema").get("type").asText()).isEqualTo("object");
+        assertThat(providerOperation.get("description")).isNull();
+        assertThat(batchOperation.get("description")).isNull();
         var defaultOperation = paths
                 .get("/events")
                 .get("post");

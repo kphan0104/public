@@ -23,11 +23,15 @@ final class EventTemplateFactory {
     }
 
     static DatabusEventTemplate defaults() {
+        return withProviderName(DEFAULT_PROVIDER_NAME);
+    }
+
+    static DatabusEventTemplate withProviderName(String providerName) {
         return create(
                 DEFAULT_OWNER_GROUP,
                 DEFAULT_OWNER_ENTITY,
                 DEFAULT_OWNER_NAME,
-                DEFAULT_PROVIDER_NAME,
+                providerName,
                 DEFAULT_PROVIDER_SOURCE,
                 DEFAULT_FORMAT_VERSION,
                 DEFAULT_FORMAT_TYPE,
