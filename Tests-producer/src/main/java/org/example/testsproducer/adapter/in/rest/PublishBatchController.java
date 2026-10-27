@@ -81,7 +81,8 @@ public class PublishBatchController {
 
             @Parameter(
                     description = "Règles JSON des variables : string (length, characters), "
-                            + "integer (min, max inclus), choice (values). {} pour répéter le message sans variable.",
+                            + "integer (min, max inclus, padding optionnel pour compléter avec des zéros), "
+                            + "choice (values). {} pour répéter le message sans variable.",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(type = "object"),

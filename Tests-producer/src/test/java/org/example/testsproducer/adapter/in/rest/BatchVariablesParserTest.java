@@ -41,11 +41,43 @@ class BatchVariablesParserTest {
                 "{\"X\":{\"type\":\"integer\",\"min\":1.5,\"max\":2}}",
                 "{\"X\":{\"type\":\"integer\",\"min\":1,\"max\":2147483648}}",
                 "{\"X\":{\"type\":\"integer\",\"min\":1,\"max\":2,\"typo\":0}}",
+                "{\"X\":{\"type\":\"integer\",\"min\":1,\"max\":2,\"padding\":-1}}",
+                "{\"X\":{\"type\":\"integer\",\"min\":1,\"max\":2,\"padding\":10001}}",
+                "{\"X\":{\"type\":\"integer\",\"min\":1,\"max\":2,\"padding\":2.5}}",
+                "{\"X\":{\"type\":\"integer\",\"min\":1,\"max\":2,\"padding\":\"5\"}}",
+                "{\"X\":{\"type\":\"integer\",\"min\":1,\"max\":2,\"padding\":null}}",
                 "{\"X\":{\"type\":\"choice\",\"values\":[]}}",
                 "{\"X\":{\"type\":\"choice\",\"values\":[1]}}"
         }) {
             assertThatThrownBy(() -> parser.parse(definition))
                     .as(definition).isInstanceOf(InvalidVariablesException.class);
+        }
+    }
+
+    @Test
+    void padsIntegerVariablesWithZerosWithoutTruncatingValues() {
+        var variables = parser.parse("""
+                {
+                  "NUMBER": {"type": "integer", "min": 1, "max": 99999, "padding": 5},
+                  "FIRST": {"type": "integer", "min": 1, "max": 1, "padding": 5},
+                  "LAST": {"type": "integer", "min": 99999, "max": 99999, "padding": 5},
+                  "LONGER": {"type": "integer", "min": 12345, "max": 12345, "padding": 2},
+                  "NEGATIVE": {"type": "integer", "min": -1, "max": -1, "padding": 5},
+                  "ZERO": {"type": "integer", "min": 0, "max": 0, "padding": 5},
+                  "UNPADDED": {"type": "integer", "min": 1, "max": 1}
+                }
+                """);
+        var random = new Random(42);
+        assertThat("e" + variables.get("FIRST").generate(random)).isEqualTo("e00001");
+        assertThat("e" + variables.get("LAST").generate(random)).isEqualTo("e99999");
+        assertThat(variables.get("LONGER").generate(random)).isEqualTo("12345");
+        assertThat(variables.get("NEGATIVE").generate(random)).isEqualTo("-00001");
+        assertThat(variables.get("ZERO").generate(random)).isEqualTo("00000");
+        assertThat(variables.get("UNPADDED").generate(random)).isEqualTo("1");
+        for (int index = 0; index < 1000; index++) {
+            String value = variables.get("NUMBER").generate(random);
+            assertThat(value).matches("[0-9]{5}");
+            assertThat(Integer.parseInt(value)).isBetween(1, 99999);
         }
     }
 

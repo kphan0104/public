@@ -58,7 +58,7 @@ public final class BatchVariablesParser {
         String type = requiredText(rule, "type");
         Set<String> allowedFields = switch (type) {
             case "string" -> Set.of("type", "length", "characters");
-            case "integer" -> Set.of("type", "min", "max");
+            case "integer" -> Set.of("type", "min", "max", "padding");
             case "choice" -> Set.of("type", "values");
             default -> throw new IllegalArgumentException("type doit être string, integer ou choice");
         };
@@ -71,7 +71,8 @@ public final class BatchVariablesParser {
             case "string" -> new MessageVariable.StringVariable(
                     requiredInteger(rule, "length"), requiredText(rule, "characters"));
             case "integer" -> new MessageVariable.IntegerVariable(
-                    requiredInteger(rule, "min"), requiredInteger(rule, "max"));
+                    requiredInteger(rule, "min"), requiredInteger(rule, "max"),
+                    rule.has("padding") ? requiredInteger(rule, "padding") : 0);
             case "choice" -> choice(rule);
             default -> throw new IllegalArgumentException("Type de variable invalide");
         };

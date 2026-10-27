@@ -428,7 +428,28 @@ Exemple de `variables` :
 `characters` accepte des caractères littéraux et des intervalles, par exemple
 `a-z`, `A-Z`, `0-9` ou `a-zA-Z0-9`. Pour une seule lettre, utiliser `length: 1`.
 `integer` tire un entier entre `min` et `max`, bornes incluses (entiers signés
-sur 32 bits). `choice` choisit une valeur dans une liste non vide de chaînes.
+sur 32 bits). L'option `padding` complète le nombre avec des zéros à gauche.
+Par exemple, pour un message `e${NUMBER}`, utiliser :
+
+```json
+{
+  "NUMBER": {
+    "type": "integer",
+    "min": 1,
+    "max": 99999,
+    "padding": 5
+  }
+}
+```
+
+Cela produit des identifiants comme `e00001`, `e00427` ou `e99999`.
+`padding` est une largeur minimale en chiffres, de 0 à 10000 : les nombres plus
+longs ne sont pas tronqués et le signe négatif, s'il existe, reste devant les
+zéros. Sans cette option (ou avec `0`), le nombre n'est pas complété.
+Dans un message JSON, placer ces identifiants entre guillemets, par exemple
+`{"id":"e${NUMBER}"}`, car un nombre JSON ne peut pas avoir de zéros initiaux.
+
+`choice` choisit une valeur dans une liste non vide de chaînes.
 Les noms de variables acceptent les lettres, chiffres et `_`, sans commencer
 par un chiffre.
 

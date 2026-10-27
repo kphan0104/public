@@ -51,17 +51,28 @@ public sealed interface MessageVariable {
         }
     }
 
-    record IntegerVariable(int min, int max) implements MessageVariable {
+    record IntegerVariable(int min, int max, int padding) implements MessageVariable {
+
+        public IntegerVariable(int min, int max) {
+            this(min, max, 0);
+        }
 
         public IntegerVariable {
             if (min > max) {
                 throw new IllegalArgumentException("min doit être inférieur ou égal à max");
             }
+            if (padding < 0 || padding > 10_000) {
+                throw new IllegalArgumentException("padding doit être compris entre 0 et 10000");
+            }
         }
 
         @Override
         public String generate(RandomGenerator random) {
-            return Long.toString(random.nextLong(min, (long) max + 1));
+            String value = Long.toString(random.nextLong(min, (long) max + 1));
+            boolean negative = value.startsWith("-");
+            String digits = negative ? value.substring(1) : value;
+            String padded = "0".repeat(Math.max(0, padding - digits.length())) + digits;
+            return negative ? "-" + padded : padded;
         }
     }
 
