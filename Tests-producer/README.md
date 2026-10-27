@@ -591,6 +591,8 @@ ignorées. Le script s'arrête à la première erreur en affichant la ligne du C
 et la réponse de l'API ; les messages déjà envoyés restent publiés.
 Si le modèle ne contient pas `${IP}`, le script échoue avant tout envoi.
 Le token peut être modifié avec la constante `IP_TOKEN` en haut du script.
+Les appels curl ignorent les proxies du poste avec `--noproxy '*'`, afin de
+joindre directement le serveur, même si un proxy local est configuré.
 Il utilise uniquement la bibliothèque standard Python (Python 3.6 ou supérieur)
 et la commande `curl`, disponible sous macOS, Linux et Windows. Aucun `pip install`
 n'est nécessaire. Sous Windows, la commande peut être

@@ -28,6 +28,7 @@ def publish_message(message, ip, line_number):
     result = subprocess.run(
         [
             "curl",
+            "--noproxy", "*",
             "--silent",
             "--show-error",
             "--request", "POST",
