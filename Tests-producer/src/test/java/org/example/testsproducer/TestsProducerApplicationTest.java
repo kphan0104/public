@@ -51,6 +51,12 @@ class TestsProducerApplicationTest {
     }
 
     @Test
+    void secretSantaIsDisabledByDefault() throws Exception {
+        mockMvc.perform(get("/secret-santa/anything")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/secret-santa/admin/anything")).andExpect(status().isNotFound());
+    }
+
+    @Test
     void exposesSwaggerWithFlowSelectorAndDefaults() throws Exception {
         var response = mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())

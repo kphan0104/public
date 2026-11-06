@@ -27,6 +27,13 @@ spring:
       enabled: true
 
 tests-producer:
+  secret-santa:
+    enabled: false
+    participants: [] # Exemple : [Alice, Bob, Charlie]
+    storage-file: ${SECRET_SANTA_STORAGE_FILE:./secret-santa/draw.enc}
+    encryption-key: ${SECRET_SANTA_ENCRYPTION_KEY:}
+    admin-key: ${SECRET_SANTA_ADMIN_KEY:}
+    public-base-url: ${SECRET_SANTA_PUBLIC_BASE_URL:http://localhost:8080}
   publication:
     acknowledgement-timeout: 10s
     max-message-bytes: 1000000

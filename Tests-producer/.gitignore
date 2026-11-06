@@ -12,3 +12,6 @@ target/
 *.pem
 *.crt
 /logs/
+
+# Tirage Secret Santa chiffré et verrou
+/secret-santa/

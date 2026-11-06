@@ -676,3 +676,67 @@ partir du numéro le plus élevé. Le serveur crée actuellement le `stage1`.
 ```bash
 ./mvnw test
 ```
+
+
+## Secret Santa (hors Swagger)
+
+La fonctionnalité est désactivée par défaut et n'ajoute aucune dépendance.
+Dans `application.yml`, ajouter sous `tests-producer` :
+
+```yaml
+  secret-santa:
+    enabled: true
+    participants: [Alice, Bob, Charlie]
+    storage-file: ${SECRET_SANTA_STORAGE_FILE:./secret-santa/draw.enc}
+    encryption-key: ${SECRET_SANTA_ENCRYPTION_KEY}
+    admin-key: ${SECRET_SANTA_ADMIN_KEY}
+    public-base-url: ${SECRET_SANTA_PUBLIC_BASE_URL:http://localhost:8080}
+```
+
+Avant le premier démarrage, générer **deux secrets différents** :
+
+```bash
+openssl rand -base64 32 # SECRET_SANTA_ENCRYPTION_KEY
+openssl rand -hex 32   # SECRET_SANTA_ADMIN_KEY
+```
+
+Conserver ces valeurs dans l'environnement du service (ou dans sa configuration
+externe protégée), et les réutiliser à chaque démarrage. Ne pas les régénérer
+à chaque lancement. Définir `SECRET_SANTA_PUBLIC_BASE_URL` avec l'URL accessible
+aux participants, par exemple `https://cadeaux.example.net` (inclure le chemin
+de contexte éventuel, sans `/secret-santa`).
+
+La page organisateur est **`<public-base-url>/secret-santa/admin/<admin-key>`**.
+Elle liste chaque participant et son lien personnel, avec un bouton de copie,
+sans afficher les destinataires. Transmettre chaque lien uniquement à son
+participant. Chaque URL personnelle affiche le même résultat à chaque visite.
+Une clé organisateur ou un lien personnel incorrect renvoie une page 404.
+Les pages sont exclues d'OpenAPI/Swagger, sans cache, sans ressources externes,
+sans transmission du lien dans l'en-tête Referer et sans indexation demandée.
+
+Le premier démarrage activé réalise le tirage : au moins deux noms distincts,
+chacun reçoit exactement un cadeau et personne ne tire son propre nom. Les
+binômes réciproques sont possibles. Les URL utilisent des secrets aléatoires de
+256 bits. Le tirage et les URL sont enregistrés ensemble en **AES-256-GCM** ;
+aucun résultat ni lien n'est écrit dans les logs de la fonctionnalité. Éviter
+de journaliser les URL `/secret-santa/**` dans les access logs du serveur ou du
+reverse proxy, et utiliser HTTPS en déploiement.
+
+**Persistance :** conserver le fichier `draw.enc` et la clé de chiffrement.
+Utiliser un chemin absolu et un volume persistant en conteneur. Sauvegarder le
+fichier avec sa clé séparément. Le fichier est écrit atomiquement, avec des
+droits `600` sur les systèmes POSIX ; un verrou protège l'initialisation entre
+processus. Les instances doivent partager le même stockage si elles servent
+le même tirage. Pour une première utilisation, démarrer une instance puis les
+autres avec la même configuration et le même fichier.
+
+Au redémarrage, le tirage existant est relu, même si l'ordre des noms change.
+Une liste différente, une mauvaise clé ou un fichier corrompu bloque le
+démarrage sans remplacer le fichier. Si le fichier est absent, un tirage est
+créé : ne pas le supprimer pour un simple redémarrage. Pour organiser une
+nouvelle édition, choisir explicitement un autre fichier et une nouvelle clé
+organisateur ; conserver l'ancien fichier tant que ses liens sont utilisés.
+
+L'organisateur peut lire un résultat en ouvrant le lien correspondant. Le
+chiffrement évite les spoilers à la lecture du fichier, mais l'administrateur
+du serveur possède techniquement les moyens de déchiffrer les résultats.
